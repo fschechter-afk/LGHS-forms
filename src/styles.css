@@ -255,3 +255,9 @@ code { background: #F0F2F9; border-radius: 6px; padding: 1px 6px; font-size: 13p
 
 .muted { color: var(--muted); }
 .small { font-size: 13px; }
+
+/* Student hub */
+.card-title { margin: 0 0 8px; font-size: 17px; }
+.form-card-hub { cursor: pointer; }
+.form-card-hub:hover { border-color: var(--accent); }
+.hub-fill-hint { color: var(--accent); font-weight: 600; font-size: 14px; margin-top: 10px; }

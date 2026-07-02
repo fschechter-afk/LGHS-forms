@@ -1,11 +1,23 @@
 import React, { useState } from 'react'
-import { getSettings, saveSettings, getQueue } from '../storage.js'
+import { getSettings, saveSettings, getQueue, hubLink } from '../storage.js'
 import { sendToSheets, flushQueue } from '../sheets.js'
 
 export default function Settings() {
   const [settings, setSettings] = useState(getSettings())
   const [testState, setTestState] = useState(null)
+  const [hubCopied, setHubCopied] = useState(false)
   const queued = getQueue().length
+
+  async function copyHubLink() {
+    const url = hubLink(settings.sheetsEndpoint)
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch {
+      prompt('Copy this link:', url)
+    }
+    setHubCopied(true)
+    setTimeout(() => setHubCopied(false), 1500)
+  }
 
   function save(patch) {
     const next = { ...settings, ...patch }
@@ -79,6 +91,35 @@ export default function Settings() {
           {testState === 'fail' && <span className="error-text">Couldn't reach the web app. Check the URL and that access is set to "Anyone".</span>}
         </div>
       </div>
+
+      {settings.sheetsEndpoint && (
+        <div className="card">
+          <h2 className="card-title">Student hub — one permanent link</h2>
+          <p>
+            The hub is a single page that always lists your currently published
+            forms. Give this one link out once (e.g. to a filtered-phone company
+            for whitelisting) — it never changes. Use <strong>Publish to hub</strong> on
+            a form to make it appear there.
+          </p>
+          <div className="settings-actions">
+            <button className="btn primary" onClick={copyHubLink}>
+              {hubCopied ? '✓ Copied' : 'Copy hub link'}
+            </button>
+            <a className="btn" href={hubLink(settings.sheetsEndpoint)} target="_blank" rel="noreferrer">
+              Open hub
+            </a>
+          </div>
+          <label className="field">
+            Publish key (optional — must match PUBLISH_KEY in your Apps Script)
+            <input
+              className="fill-input"
+              placeholder="Leave blank unless you set one in the script"
+              value={settings.publishKey}
+              onChange={(e) => save({ publishKey: e.target.value.trim() })}
+            />
+          </label>
+        </div>
+      )}
 
       {queued > 0 && (
         <div className="card">

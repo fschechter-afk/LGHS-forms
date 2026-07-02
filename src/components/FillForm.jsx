@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { addResponse, uid } from '../storage.js'
 import { submitOrQueue } from '../sheets.js'
 
-export default function FillForm({ form, endpoint, preview = false, shared = false }) {
+export default function FillForm({ form, endpoint, preview = false, shared = false, onBack }) {
   const [answers, setAnswers] = useState({})
   const [errors, setErrors] = useState({})
   const [state, setState] = useState('editing') // editing | sending | done
@@ -90,6 +90,7 @@ export default function FillForm({ form, endpoint, preview = false, shared = fal
           <button className="btn primary" onClick={() => { setAnswers({}); setErrors({}); setState('editing') }}>
             Submit another response
           </button>
+          {onBack && <button className="btn ghost" onClick={onBack}>← All forms</button>}
           {!shared && <a className="btn ghost" href="#/">Back to your forms</a>}
         </div>
       </div>
@@ -98,6 +99,11 @@ export default function FillForm({ form, endpoint, preview = false, shared = fal
 
   return (
     <div className="page fill-page">
+      {onBack && (
+        <header className="topbar">
+          <button className="btn ghost" onClick={onBack}>← All forms</button>
+        </header>
+      )}
       {preview && (
         <div className="banner static">Preview — submissions here are not saved. <a href={`#/edit/${form.id}`}>Back to editing</a></div>
       )}
