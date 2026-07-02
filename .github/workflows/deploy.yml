@@ -27,6 +27,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      - run: npm ci
+        working-directory: messenger
+      - run: npm run build
+        working-directory: messenger
+      - run: mv messenger/dist dist/messenger
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

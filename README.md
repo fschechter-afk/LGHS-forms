@@ -1,5 +1,9 @@
 # LGHS Forms
 
+> **Also in this repo:** [LJHS Dorm Messenger](messenger/README.md) — a
+> private, invite-only messaging PWA (DMs, groups, announcements, reactions,
+> polls, check-ins). Deployed alongside the forms app at `/messenger/`.
+
 A Google Forms substitute built as an installable PWA. Build forms, share a link,
 and every submission is automatically appended to your Google Sheet — no server
 needed.
