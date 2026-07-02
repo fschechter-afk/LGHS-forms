@@ -1,9 +1,12 @@
-/* Service worker: app-shell caching + offline support. */
-const CACHE = 'lghs-forms-v1'
+/* Service worker: app-shell caching + offline support.
+   Paths are relative so the app works when hosted under a sub-path
+   (e.g. GitHub Pages project sites). */
+const CACHE = 'lghs-forms-v2'
+const SHELL = './'
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(['/', '/manifest.webmanifest', '/icon.svg']))
+    caches.open(CACHE).then((cache) => cache.addAll([SHELL, './manifest.webmanifest', './icon.svg']))
   )
   self.skipWaiting()
 })
@@ -28,10 +31,10 @@ self.addEventListener('fetch', (event) => {
       fetch(req)
         .then((res) => {
           const copy = res.clone()
-          caches.open(CACHE).then((cache) => cache.put('/', copy))
+          caches.open(CACHE).then((cache) => cache.put(SHELL, copy))
           return res
         })
-        .catch(() => caches.match('/'))
+        .catch(() => caches.match(SHELL))
     )
     return
   }
