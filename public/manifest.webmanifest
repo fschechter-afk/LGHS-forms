@@ -1,0 +1,24 @@
+{
+  "name": "LGHS Forms",
+  "short_name": "LGHS Forms",
+  "description": "Build forms, share them, and collect responses straight into Google Sheets.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0F2044",
+  "theme_color": "#0F2044",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
