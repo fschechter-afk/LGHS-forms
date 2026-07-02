@@ -12,6 +12,8 @@ needed.
   open/close responses
 - **Share by link**: the form travels inside the URL, so anyone with the link
   can fill it out — no account, no backend
+- **Student hub**: one permanent link that lists every form you've published —
+  ideal for filtered phones (whitelist once, add forms forever)
 - **Google Sheets auto-sync**: each form gets its own tab; headers are created
   automatically and new questions become new columns
 - **PWA**: installable on phones/desktops, works offline, and queues
@@ -44,8 +46,34 @@ The PWA service worker and share links work best on a real HTTPS URL.
 From then on, every share link you copy embeds the connection, so responses
 from anyone's device land in your Sheet automatically.
 
-> If you later change the Apps Script deployment URL, re-copy your share links
-> so they point at the new deployment.
+> **Updating the script later**: paste the new code, then use
+> **Deploy → Manage deployments → ✏️ Edit → Version: New version → Deploy**.
+> That keeps the same `/exec` URL. Creating a brand-new deployment gives a new
+> URL and breaks existing share/hub links.
+
+## Student hub (one permanent link)
+
+The hub is a single page that always lists your currently published forms —
+students bookmark (or a filtered-phone provider whitelists) one URL, once.
+
+1. In **⚙ Sheets setup**, tap **Copy hub link** and hand that link out.
+2. On any form, tap **Publish to hub** — it appears on the hub immediately.
+   After editing a published form, tap **Update hub**; use **Unpublish** to
+   take it down.
+3. Published forms are stored in a hidden `_Published Forms` tab of your
+   spreadsheet, so no extra services are involved.
+
+Optional hardening: set `PUBLISH_KEY` in `Code.gs` to a password and enter the
+same key in ⚙ Sheets setup, so only you can publish to the hub.
+
+### Filtered phones / whitelisting
+
+Everything students need runs under exactly these hosts — whitelisting them
+once covers the hub and every current and future form:
+
+- `<your-username>.github.io` (the app itself, e.g. `fschechter-afk.github.io`)
+- `script.google.com` and `script.googleusercontent.com` (submitting responses
+  and loading the hub's form list)
 
 ## How it works
 

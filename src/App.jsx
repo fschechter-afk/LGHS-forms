@@ -4,6 +4,7 @@ import Builder from './components/Builder.jsx'
 import FillForm from './components/FillForm.jsx'
 import Responses from './components/Responses.jsx'
 import Settings from './components/Settings.jsx'
+import Hub from './components/Hub.jsx'
 import { decodeForm, getForm, getSettings } from './storage.js'
 import { flushQueue } from './sheets.js'
 
@@ -31,6 +32,8 @@ export default function App() {
   }, [])
 
   const { page, param } = route
+
+  if (page === 'hub') return <Hub key={param} data={param} />
 
   if (page === 'fill') {
     const shared = decodeForm(param)
