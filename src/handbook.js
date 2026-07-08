@@ -159,12 +159,14 @@ export function searchSections(sections, query, limit = 4) {
 
 // Ask the Apps Script webhook to answer with AI (it holds the Claude API key
 // in Script Properties, so the key never ships to students' devices).
-// Throws Error('no-key') when the script has no key configured.
-export async function askAI(endpoint, question, excerpts, history) {
+// The FULL handbook goes along so Claude can combine information from
+// different parts of it; the script adds the school updates itself from the
+// Sheet. Throws Error('no-key') when the script has no key configured.
+export async function askAI(endpoint, question, handbookText, history) {
   const res = await sendToSheets(endpoint, {
     action: 'ask',
     question,
-    context: excerpts.map((s) => `## ${s.crumb}\n${s.body}`).join('\n\n'),
+    handbook: handbookText.slice(0, 400000),
     history: history.slice(-6).map((m) => ({ role: m.role, text: m.text })),
   })
   const body = await res.json().catch(() => ({}))
