@@ -6,6 +6,7 @@ import { encodeText } from './storage.js'
 import { sendToSheets } from './sheets.js'
 
 const CACHE_KEY = 'lghsforms.handbook'
+const KNOWLEDGE_CACHE_KEY = 'lghsforms.knowledge'
 const SAMPLE_MARKER = 'SAMPLE HANDBOOK'
 
 let memo = null
@@ -28,6 +29,59 @@ export async function loadHandbook() {
 
 export function isSampleHandbook(text) {
   return text.includes(SAMPLE_MARKER)
+}
+
+// ---- Extra info ("school updates") ----
+// Staff can keep adding information from the Settings page without touching
+// handbook.md or redeploying. Entries live in a hidden tab of the Google
+// Sheet; the chatbox fetches them fresh on every visit and keeps the last
+// copy in localStorage for offline use.
+
+export async function loadKnowledge(endpoint) {
+  if (!endpoint) return []
+  try {
+    const url = endpoint + (endpoint.includes('?') ? '&' : '?') + 'knowledge=1'
+    const res = await fetch(url, { redirect: 'follow' })
+    if (!res.ok) throw new Error('knowledge fetch failed')
+    const body = await res.json()
+    if (!body.ok) throw new Error(body.error || 'knowledge error')
+    const entries = body.entries || []
+    try {
+      localStorage.setItem(KNOWLEDGE_CACHE_KEY, JSON.stringify(entries))
+    } catch {}
+    return entries
+  } catch {
+    try {
+      return JSON.parse(localStorage.getItem(KNOWLEDGE_CACHE_KEY)) || []
+    } catch {
+      return []
+    }
+  }
+}
+
+// Turn stored entries into sections shaped like handbook sections, so the
+// same retrieval and citation code covers both.
+export function knowledgeSections(entries) {
+  return entries
+    .filter((e) => e.text)
+    .map((e) => ({
+      title: e.title || 'School update',
+      crumb: `School updates › ${e.title || 'Update'}`,
+      body: e.text,
+    }))
+}
+
+export async function addKnowledge(endpoint, { id, title, text }, key) {
+  const res = await sendToSheets(endpoint, { action: 'addinfo', id, title, text, key: key || '' })
+  const body = await res.json().catch(() => ({}))
+  if (!body.ok) throw new Error(body.error || 'Could not save')
+  return body.id
+}
+
+export async function removeKnowledge(endpoint, id, key) {
+  const res = await sendToSheets(endpoint, { action: 'removeinfo', id, key: key || '' })
+  const body = await res.json().catch(() => ({}))
+  if (!body.ok) throw new Error(body.error || 'Could not delete')
 }
 
 // Split the Markdown into sections keyed by their heading trail, so answers

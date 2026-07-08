@@ -79,8 +79,8 @@ export default function Hub({ data }) {
       )}
 
       <a className="card form-card-hub chat-hub-card" href={`#/chat/${data}`}>
-        <div className="form-card-title">📖 Handbook chat</div>
-        <div className="muted small">Ask questions about the student handbook.</div>
+        <div className="form-card-title">💬 LGHS Chatbox</div>
+        <div className="muted small">Ask questions about the student handbook and school info.</div>
         <div className="hub-fill-hint">Tap to ask →</div>
       </a>
 

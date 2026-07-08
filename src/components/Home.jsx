@@ -35,7 +35,7 @@ export default function Home() {
           <span className="brand-mark">LGHS</span> Forms
         </div>
         <div className="topbar-actions">
-          <a className="btn ghost" href="#/chat">📖 Handbook chat</a>
+          <a className="btn ghost" href="#/chat">💬 LGHS Chatbox</a>
           <a className="btn ghost" href="#/settings">⚙ Sheets setup</a>
         </div>
       </header>

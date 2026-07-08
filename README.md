@@ -14,10 +14,11 @@ needed.
   can fill it out — no account, no backend
 - **Student hub**: one permanent link that lists every form you've published —
   ideal for filtered phones (whitelist once, add forms forever)
-- **Handbook AI chat**: students ask questions about the school handbook and
-  get answers grounded in the handbook text — with real AI answers via Claude
-  when you add an API key to your Apps Script, and section-quoting answers
-  (fully offline) when you don't
+- **LGHS Chatbox**: students ask questions about the school handbook and
+  school info and get answers grounded in your content — with real AI answers
+  via Claude when you add an API key to your Apps Script, and section-quoting
+  answers (fully offline) when you don't. Staff can keep adding new info from
+  the Settings page anytime, no redeploy needed
 - **Google Sheets auto-sync**: each form gets its own tab; headers are created
   automatically and new questions become new columns
 - **PWA**: installable on phones/desktops, works offline, and queues
@@ -70,18 +71,18 @@ students bookmark (or a filtered-phone provider whitelists) one URL, once.
 Optional hardening: set `PUBLISH_KEY` in `Code.gs` to a password and enter the
 same key in ⚙ Sheets setup, so only you can publish to the hub.
 
-## Handbook AI chat
+## LGHS Chatbox
 
-Students open the chat from the hub (or you hand out the chat link from
-**⚙ Sheets setup → Copy chat link**) and ask questions like "what's the cell
-phone policy?" or "how do I excuse an absence?".
+Students open the chatbox from the hub (or you hand out the chatbox link from
+**⚙ Sheets setup → Copy chatbox link**) and ask questions like "what's the
+cell phone policy?" or "how do I excuse an absence?".
 
 1. **Put your handbook in the app**: paste your school handbook (as Markdown,
    with `#`/`##` headings for sections) into [`public/handbook.md`](public/handbook.md),
    delete the `SAMPLE HANDBOOK` line at the top, and redeploy
-   (`npm run build`). Headings matter — the chat uses them to find and cite
+   (`npm run build`). Headings matter — the chatbox uses them to find and cite
    the right sections.
-2. **Optional — enable real AI answers**: the chat sends questions to your
+2. **Optional — enable real AI answers**: the chatbox sends questions to your
    Apps Script web app, which calls Claude so the API key never reaches
    students' devices.
    - Get an API key at [platform.claude.com](https://platform.claude.com).
@@ -90,11 +91,23 @@ phone policy?" or "how do I excuse an absence?".
    - Paste the latest `apps-script/Code.gs` into the script and redeploy
      (**Manage deployments → ✏️ Edit → New version → Deploy**).
 
-Without an API key the chat still works: it answers by quoting the handbook
-sections that best match the question, entirely on the student's device (it
-even works offline). With the key, Claude writes a conversational answer
-grounded in those sections, and students can expand "Handbook sections used"
-to see the sources.
+Without an API key the chatbox still works: it answers by quoting the
+handbook sections that best match the question, entirely on the student's
+device (it even works offline). With the key, Claude writes a conversational
+answer grounded in those sections, and students can expand "Sources used" to
+see where it came from.
+
+### Keep adding information anytime
+
+The handbook file isn't the only knowledge source. In **⚙ Sheets setup →
+Chatbox info** you can add new information whenever you like — announcements,
+schedule changes, clarifications, answers to questions the handbook misses.
+Entries are stored in a hidden `_Chatbox Info` tab of your Google Sheet and
+the chatbox starts using them immediately: no rebuild, no redeploy. Each
+entry has a short topic (used for finding and citing it) and the information
+itself, and can be removed again from the same page. If you set `PUBLISH_KEY`
+in `Code.gs`, adding/removing info requires the same key, so only you can do
+it.
 
 ### Filtered phones / whitelisting
 

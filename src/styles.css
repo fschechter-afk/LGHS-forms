@@ -307,6 +307,21 @@ code { background: #F0F2F9; border-radius: 6px; padding: 1px 6px; font-size: 13p
 .chat-input-row .fill-input { flex: 1; }
 .chat-footnote { text-align: center; margin-top: 10px; }
 
+/* Chatbox info manager (Settings) */
+.info-list { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.info-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  justify-content: space-between;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.info-item-main { min-width: 0; }
+.info-item-title { font-weight: 700; font-size: 14px; }
+.info-item-text { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 72px; overflow: hidden; }
+
 /* Student hub */
 .card-title { margin: 0 0 8px; font-size: 17px; }
 .form-card-hub { cursor: pointer; }
