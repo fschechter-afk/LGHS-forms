@@ -256,6 +256,72 @@ code { background: #F0F2F9; border-radius: 6px; padding: 1px 6px; font-size: 13p
 .muted { color: var(--muted); }
 .small { font-size: 13px; }
 
+/* Handbook chat */
+.chat-hub-card { display: block; text-decoration: none; color: inherit; }
+.chat-card { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+.chat-messages {
+  flex: 1;
+  min-height: 300px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.chat-welcome { color: var(--muted); font-size: 14px; }
+.chat-suggestions { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; align-items: flex-start; }
+.chat-bubble {
+  max-width: 88%;
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.chat-bubble.user {
+  align-self: flex-end;
+  background: var(--navy);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.chat-bubble.assistant {
+  align-self: flex-start;
+  background: #F0F3FA;
+  border: 1px solid var(--line);
+  border-bottom-left-radius: 4px;
+}
+.chat-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.chat-typing { color: var(--muted); font-style: italic; }
+.chat-sources { margin-top: 8px; font-size: 13px; }
+.chat-sources summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+.chat-source { margin-top: 8px; padding: 8px 10px; background: #fff; border: 1px solid var(--line); border-radius: 10px; }
+.chat-source-title { font-weight: 700; margin-bottom: 4px; }
+.chat-source-body { white-space: pre-wrap; color: var(--muted); }
+.chat-input-row {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--line);
+  background: var(--card);
+}
+.chat-input-row .fill-input { flex: 1; }
+.chat-footnote { text-align: center; margin-top: 10px; }
+
+/* Chatbox info manager (Settings) */
+.info-list { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.info-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  justify-content: space-between;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.info-item-main { min-width: 0; }
+.info-item-title { font-weight: 700; font-size: 14px; }
+.info-item-text { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 72px; overflow: hidden; }
+
 /* Student hub */
 .card-title { margin: 0 0 8px; font-size: 17px; }
 .form-card-hub { cursor: pointer; }

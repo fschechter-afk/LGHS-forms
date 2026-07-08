@@ -1,11 +1,117 @@
-import React, { useState } from 'react'
-import { getSettings, saveSettings, getQueue, hubLink } from '../storage.js'
+import React, { useEffect, useState } from 'react'
+import { getSettings, saveSettings, getQueue, hubLink, uid } from '../storage.js'
 import { sendToSheets, flushQueue } from '../sheets.js'
+import { chatLink, loadKnowledge, addKnowledge, removeKnowledge } from '../handbook.js'
+
+// Keep feeding the LGHS Chatbox new information — announcements, schedule
+// changes, clarifications — without touching handbook.md or redeploying.
+// Entries are stored in a hidden tab of the Google Sheet and go live in the
+// chatbox immediately.
+function KnowledgeManager({ endpoint, publishKey }) {
+  const [entries, setEntries] = useState(null) // null = loading
+  const [title, setTitle] = useState('')
+  const [text, setText] = useState('')
+  const [state, setState] = useState(null) // null | 'saving' | 'saved' | error string
+
+  async function refresh() {
+    setEntries(await loadKnowledge(endpoint))
+  }
+
+  useEffect(() => {
+    refresh()
+  }, [endpoint])
+
+  async function add(e) {
+    e.preventDefault()
+    if (!text.trim()) return
+    setState('saving')
+    try {
+      const id = uid()
+      await addKnowledge(endpoint, { id, title: title.trim(), text: text.trim() }, publishKey)
+      setTitle('')
+      setText('')
+      setState('saved')
+      setTimeout(() => setState((s) => (s === 'saved' ? null : s)), 1500)
+      refresh()
+    } catch (err) {
+      setState(err.message || 'Could not save')
+    }
+  }
+
+  async function remove(id) {
+    if (!confirm('Remove this info from the chatbox?')) return
+    try {
+      await removeKnowledge(endpoint, id, publishKey)
+      setEntries((list) => (list || []).filter((e) => e.id !== id))
+    } catch (err) {
+      alert(err.message || 'Could not delete')
+    }
+  }
+
+  return (
+    <div className="card">
+      <h2 className="card-title">Chatbox info — add more anytime</h2>
+      <p className="muted small">
+        Anything you add here is stored in your Google Sheet (hidden
+        "_Chatbox Info" tab) and the chatbox starts using it right away — no
+        redeploy needed. Great for announcements, schedule changes, and
+        answers to questions the handbook misses.
+      </p>
+
+      <form onSubmit={add}>
+        <label className="field">
+          Topic (helps the chatbox find and cite it)
+          <input
+            className="fill-input"
+            placeholder="e.g. Finals week schedule"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+        </label>
+        <label className="field">
+          Information
+          <textarea
+            className="fill-input"
+            rows={4}
+            placeholder="e.g. During finals week (June 1–5) school starts at 9:00 AM…"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+          />
+        </label>
+        <div className="settings-actions">
+          <button className="btn primary" type="submit" disabled={!text.trim() || state === 'saving'}>
+            {state === 'saving' ? 'Adding…' : '+ Add to chatbox'}
+          </button>
+          {state === 'saved' && <span className="ok-text">✓ Added — live in the chatbox now.</span>}
+          {state && state !== 'saving' && state !== 'saved' && (
+            <span className="error-text">{state}</span>
+          )}
+        </div>
+      </form>
+
+      {entries === null && <p className="muted small">Loading current info…</p>}
+      {entries && entries.length > 0 && (
+        <ul className="info-list">
+          {entries.map((e) => (
+            <li key={e.id} className="info-item">
+              <div className="info-item-main">
+                <div className="info-item-title">{e.title || 'Untitled'}</div>
+                <div className="muted small info-item-text">{e.text}</div>
+              </div>
+              <button className="btn small danger" onClick={() => remove(e.id)}>Remove</button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
 
 export default function Settings() {
   const [settings, setSettings] = useState(getSettings())
   const [testState, setTestState] = useState(null)
   const [hubCopied, setHubCopied] = useState(false)
+  const [chatCopied, setChatCopied] = useState(false)
   const queued = getQueue().length
 
   async function copyHubLink() {
@@ -17,6 +123,17 @@ export default function Settings() {
     }
     setHubCopied(true)
     setTimeout(() => setHubCopied(false), 1500)
+  }
+
+  async function copyChatLink() {
+    const url = chatLink(settings.sheetsEndpoint)
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch {
+      prompt('Copy this link:', url)
+    }
+    setChatCopied(true)
+    setTimeout(() => setChatCopied(false), 1500)
   }
 
   function save(patch) {
@@ -119,6 +236,36 @@ export default function Settings() {
             />
           </label>
         </div>
+      )}
+
+      <div className="card">
+        <h2 className="card-title">LGHS Chatbox</h2>
+        <p>
+          Students can ask the LGHS Chatbox questions about the school handbook
+          and school info at the link below (also available from the hub). The
+          handbook text lives in <code>public/handbook.md</code> in this project.
+        </p>
+        <p className="muted small">
+          Without any extra setup the chatbox answers by quoting the matching
+          handbook sections. To get real AI answers, open your Apps Script
+          (the same one from the Sheets setup above), go to{' '}
+          <strong>Project Settings → Script Properties</strong>, and add a
+          property named <code>ANTHROPIC_API_KEY</code> with your Claude API key
+          from <strong>platform.claude.com</strong>. The key stays inside Apps
+          Script — students never see it.
+        </p>
+        <div className="settings-actions">
+          <button className="btn primary" onClick={copyChatLink}>
+            {chatCopied ? '✓ Copied' : 'Copy chatbox link'}
+          </button>
+          <a className="btn" href={settings.sheetsEndpoint ? chatLink(settings.sheetsEndpoint) : '#/chat'}>
+            Open chatbox
+          </a>
+        </div>
+      </div>
+
+      {settings.sheetsEndpoint && (
+        <KnowledgeManager endpoint={settings.sheetsEndpoint} publishKey={settings.publishKey} />
       )}
 
       {queued > 0 && (
