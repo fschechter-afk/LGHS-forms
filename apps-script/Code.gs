@@ -42,7 +42,11 @@
 var PUBLISH_KEY = '';
 var PUBLISHED_SHEET = '_Published Forms';
 var KNOWLEDGE_SHEET = '_Chatbox Info';
-var ANTHROPIC_MODEL = 'claude-opus-4-8';
+// AI model for chatbox answers. Haiku is fast and inexpensive (a typical
+// handbook answer costs a fraction of a cent to ~2 cents). To use a
+// different model without editing code, add a Script Property named
+// ANTHROPIC_MODEL (e.g. claude-opus-4-8 for the most capable answers).
+var ANTHROPIC_MODEL = 'claude-haiku-4-5';
 
 function doPost(e) {
   try {
@@ -257,9 +261,8 @@ function ask_(data) {
       'anthropic-version': '2023-06-01',
     },
     payload: JSON.stringify({
-      model: ANTHROPIC_MODEL,
+      model: PropertiesService.getScriptProperties().getProperty('ANTHROPIC_MODEL') || ANTHROPIC_MODEL,
       max_tokens: 2048,
-      thinking: { type: 'adaptive' },
       system: system,
       messages: messages,
     }),
