@@ -78,6 +78,12 @@ export default function Hub({ data }) {
         </div>
       )}
 
+      <a className="card form-card-hub chat-hub-card" href={`#/chat/${data}`}>
+        <div className="form-card-title">📖 Handbook chat</div>
+        <div className="muted small">Ask questions about the student handbook.</div>
+        <div className="hub-fill-hint">Tap to ask →</div>
+      </a>
+
       {state === 'ready' && forms.map((f) => (
         <div key={f.id} className="card form-card-hub" onClick={() => setActive(f)}>
           <div className="form-card-title">{f.title || 'Untitled form'}</div>

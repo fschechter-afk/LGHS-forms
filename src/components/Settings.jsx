@@ -1,11 +1,13 @@
 import React, { useState } from 'react'
 import { getSettings, saveSettings, getQueue, hubLink } from '../storage.js'
 import { sendToSheets, flushQueue } from '../sheets.js'
+import { chatLink } from '../handbook.js'
 
 export default function Settings() {
   const [settings, setSettings] = useState(getSettings())
   const [testState, setTestState] = useState(null)
   const [hubCopied, setHubCopied] = useState(false)
+  const [chatCopied, setChatCopied] = useState(false)
   const queued = getQueue().length
 
   async function copyHubLink() {
@@ -17,6 +19,17 @@ export default function Settings() {
     }
     setHubCopied(true)
     setTimeout(() => setHubCopied(false), 1500)
+  }
+
+  async function copyChatLink() {
+    const url = chatLink(settings.sheetsEndpoint)
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch {
+      prompt('Copy this link:', url)
+    }
+    setChatCopied(true)
+    setTimeout(() => setChatCopied(false), 1500)
   }
 
   function save(patch) {
@@ -120,6 +133,32 @@ export default function Settings() {
           </label>
         </div>
       )}
+
+      <div className="card">
+        <h2 className="card-title">Handbook AI chat</h2>
+        <p>
+          Students can ask questions about the school handbook at the link below
+          (also available from the hub). The handbook text lives in{' '}
+          <code>public/handbook.md</code> in this project.
+        </p>
+        <p className="muted small">
+          Without any extra setup the chat answers by quoting the matching
+          handbook sections. To get real AI answers, open your Apps Script
+          (the same one from the Sheets setup above), go to{' '}
+          <strong>Project Settings → Script Properties</strong>, and add a
+          property named <code>ANTHROPIC_API_KEY</code> with your Claude API key
+          from <strong>platform.claude.com</strong>. The key stays inside Apps
+          Script — students never see it.
+        </p>
+        <div className="settings-actions">
+          <button className="btn primary" onClick={copyChatLink}>
+            {chatCopied ? '✓ Copied' : 'Copy chat link'}
+          </button>
+          <a className="btn" href={settings.sheetsEndpoint ? chatLink(settings.sheetsEndpoint) : '#/chat'}>
+            Open chat
+          </a>
+        </div>
+      </div>
 
       {queued > 0 && (
         <div className="card">

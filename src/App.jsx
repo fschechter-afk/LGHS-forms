@@ -5,7 +5,8 @@ import FillForm from './components/FillForm.jsx'
 import Responses from './components/Responses.jsx'
 import Settings from './components/Settings.jsx'
 import Hub from './components/Hub.jsx'
-import { decodeForm, getForm, getSettings } from './storage.js'
+import HandbookChat from './components/HandbookChat.jsx'
+import { decodeForm, decodeText, getForm, getSettings } from './storage.js'
 import { flushQueue } from './sheets.js'
 
 function parseRoute() {
@@ -34,6 +35,12 @@ export default function App() {
   const { page, param } = route
 
   if (page === 'hub') return <Hub key={param} data={param} />
+
+  if (page === 'chat') {
+    // Shared links carry the webhook in the URL; the owner's device uses settings.
+    const endpoint = param ? decodeText(param) || '' : getSettings().sheetsEndpoint
+    return <HandbookChat endpoint={endpoint} backHref={param ? `#/hub/${param}` : '#/'} />
+  }
 
   if (page === 'fill') {
     const shared = decodeForm(param)
