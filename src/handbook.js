@@ -4,6 +4,7 @@
 
 import { encodeText } from './storage.js'
 import { sendToSheets } from './sheets.js'
+import { DEFAULT_CHAT_ENDPOINT } from './config.js'
 
 const CACHE_KEY = 'lghsforms.handbook'
 const KNOWLEDGE_CACHE_KEY = 'lghsforms.knowledge'
@@ -175,6 +176,11 @@ export async function askAI(endpoint, question, handbookText, history) {
 }
 
 // Sharable link to the chat that carries the webhook URL, like the hub link.
+// When the endpoint is already baked into the site as the school default,
+// the short link works and is what we hand out.
 export function chatLink(endpoint) {
+  if (endpoint && endpoint === DEFAULT_CHAT_ENDPOINT) {
+    return `${location.origin}${location.pathname}#/chat`
+  }
   return `${location.origin}${location.pathname}#/chat/${encodeText(endpoint || '')}`
 }

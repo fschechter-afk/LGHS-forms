@@ -42,6 +42,7 @@
 var PUBLISH_KEY = '';
 var PUBLISHED_SHEET = '_Published Forms';
 var KNOWLEDGE_SHEET = '_Chatbox Info';
+var QUESTIONS_SHEET = 'Chatbox Questions';
 // AI model for chatbox answers. Haiku is fast and inexpensive (a typical
 // handbook answer costs a fraction of a cent to ~2 cents). To use a
 // different model without editing code, add a Script Property named
@@ -289,7 +290,25 @@ function ask_(data) {
     if (block.type === 'text') answer += block.text;
   });
   if (!answer) return json_({ ok: false, error: 'AI returned an empty answer' });
+  logQuestion_(question, answer);
   return json_({ ok: true, answer: answer });
+}
+
+// Every AI-answered question is recorded (anonymously — no names or devices)
+// in a visible "Chatbox Questions" tab, so staff can see what people ask.
+function logQuestion_(question, answer) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName(QUESTIONS_SHEET);
+    if (!sheet) {
+      sheet = ss.insertSheet(QUESTIONS_SHEET);
+      sheet.appendRow(['Time', 'Question', 'Answer']);
+      sheet.setFrozenRows(1);
+    }
+    sheet.appendRow([new Date(), question, answer]);
+  } catch (ignored) {
+    // Logging must never break an answer.
+  }
 }
 
 // ---- Student hub: published forms ----
