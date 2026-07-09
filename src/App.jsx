@@ -7,6 +7,7 @@ import Settings from './components/Settings.jsx'
 import Hub from './components/Hub.jsx'
 import HandbookChat from './components/HandbookChat.jsx'
 import { decodeForm, decodeText, getForm, getSettings } from './storage.js'
+import { DEFAULT_CHAT_ENDPOINT } from './config.js'
 import { flushQueue } from './sheets.js'
 
 function parseRoute() {
@@ -37,8 +38,11 @@ export default function App() {
   if (page === 'hub') return <Hub key={param} data={param} />
 
   if (page === 'chat') {
-    // Shared links carry the webhook in the URL; the owner's device uses settings.
-    const endpoint = param ? decodeText(param) || '' : getSettings().sheetsEndpoint
+    // Shared links carry the webhook in the URL; the owner's device uses
+    // settings; the short #/chat link falls back to the school-wide default.
+    const endpoint = param
+      ? decodeText(param) || ''
+      : getSettings().sheetsEndpoint || DEFAULT_CHAT_ENDPOINT
     return <HandbookChat endpoint={endpoint} backHref={param ? `#/hub/${param}` : '#/'} />
   }
 
