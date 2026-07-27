@@ -44,7 +44,7 @@ export default function Admin({ session, onSettingsChanged, onBack }) {
   }
 
   const joinLink = (code) => {
-    const payload = btoa(JSON.stringify({ api: session.apiUrl, code }))
+    const payload = btoa(JSON.stringify({ u: session.url, k: session.key, c: code }))
     const base = window.location.href.split('#')[0]
     return base + '#join=' + encodeURIComponent(payload)
   }

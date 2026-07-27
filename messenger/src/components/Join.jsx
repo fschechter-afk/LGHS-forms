@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react'
-import { rawCall } from '../api.js'
+import { join } from '../api.js'
 import { setSession } from '../storage.js'
 
-// Join links look like  #join=<base64 of {"api": "...", "code": "..."}>
-// so an admin can hand out a single link instead of two things to paste.
+// Join links look like  #join=<base64 of {"u": projectUrl, "k": anonKey, "c": code}>
+// so an admin hands out a single link instead of three things to paste.
 function decodeJoinPayload(payload) {
   try {
     return JSON.parse(atob(decodeURIComponent(payload)))
@@ -14,24 +14,26 @@ function decodeJoinPayload(payload) {
 
 export default function Join({ joinPayload, onJoined }) {
   const prefill = useMemo(() => (joinPayload ? decodeJoinPayload(joinPayload) : {}), [joinPayload])
-  const [apiUrl, setApiUrl] = useState(prefill.api || '')
-  const [code, setCode] = useState(prefill.code || '')
+  const [url, setUrl] = useState(prefill.u || '')
+  const [key, setKey] = useState(prefill.k || '')
+  const [code, setCode] = useState(prefill.c || '')
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
+  const manual = !prefill.u || !prefill.k
+
   const submit = async (e) => {
     e.preventDefault()
     setError('')
-    const url = apiUrl.trim()
-    if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(url)) {
-      setError('The server link should be a Google Apps Script URL ending in /exec.')
+    const projectUrl = url.trim().replace(/\/+$/, '')
+    if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(projectUrl)) {
+      setError('The project URL should look like https://abcdefgh.supabase.co')
       return
     }
     setBusy(true)
     try {
-      const data = await rawCall(url, 'join', { code: code.trim(), name: name.trim() })
-      const session = { apiUrl: url, token: data.token, user: data.user, settings: data.settings || {} }
+      const session = await join(projectUrl, key.trim(), code.trim(), name.trim())
       setSession(session)
       onJoined(session)
     } catch (err) {
@@ -51,17 +53,30 @@ export default function Join({ joinPayload, onJoined }) {
           code or a join link.
         </p>
         <form onSubmit={submit}>
-          {!prefill.api && (
-            <label>
-              Server link
-              <input
-                type="url"
-                placeholder="https://script.google.com/…/exec"
-                value={apiUrl}
-                onChange={(e) => setApiUrl(e.target.value)}
-                required
-              />
-            </label>
+          {manual && (
+            <>
+              <label>
+                Supabase project URL
+                <input
+                  type="url"
+                  placeholder="https://abcdefgh.supabase.co"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  required
+                />
+              </label>
+              <label>
+                Supabase anon key
+                <input
+                  type="text"
+                  placeholder="eyJhbGciOi…"
+                  value={key}
+                  onChange={(e) => setKey(e.target.value)}
+                  autoComplete="off"
+                  required
+                />
+              </label>
+            </>
           )}
           <label>
             Invite code

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { call, sendOrQueue } from '../api.js'
+import { call, sendOrQueue, onChannelActivity } from '../api.js'
 import { markRead, getOutbox } from '../storage.js'
 import PollCard from './PollCard.jsx'
 
@@ -61,11 +61,15 @@ export default function ChatView({ channelId, session, quiet, onBack }) {
   useEffect(() => {
     let cancelled = false
     refresh(true).catch((err) => !cancelled && setError(err.message))
+    // Realtime delivers messages/reactions/votes instantly; the interval is
+    // only a safety net in case the websocket can't connect.
+    const unsubscribe = onChannelActivity(channelId, () => refresh().catch(() => {}))
     const timer = setInterval(() => {
       if (!document.hidden) refresh().catch(() => {})
-    }, 4000)
+    }, 20000)
     return () => {
       cancelled = true
+      unsubscribe()
       clearInterval(timer)
     }
   }, [channelId])

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { call } from '../api.js'
+import { call, onChannelListActivity } from '../api.js'
 import { getLastRead } from '../storage.js'
 
 const CHANNEL_ICONS = { announcement: '📣', group: '👥', dm: '💬' }
@@ -32,11 +32,15 @@ export default function ChatList({ session, onSignOut }) {
       }
     }
     refresh()
+    // Realtime keeps the list fresh; the interval is a safety net in case
+    // the websocket can't connect.
+    const unsubscribe = onChannelListActivity(refresh)
     const timer = setInterval(() => {
       if (!document.hidden) refresh()
-    }, 8000)
+    }, 30000)
     return () => {
       cancelled = true
+      unsubscribe()
       clearInterval(timer)
     }
   }, [])
@@ -59,7 +63,14 @@ export default function ChatList({ session, onSignOut }) {
               ⚙️
             </button>
           )}
-          <button className="icon-btn" title="Sign out" onClick={onSignOut}>
+          <button
+            className="icon-btn"
+            title="Sign out"
+            onClick={() => {
+              if (confirm('Sign out? You will need a new invite code to get back in on this device.'))
+                onSignOut()
+            }}
+          >
             ↩
           </button>
         </div>

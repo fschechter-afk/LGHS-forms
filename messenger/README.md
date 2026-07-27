@@ -2,13 +2,17 @@
 
 A private, invite-only messaging PWA for dorm life — WhatsApp-style chat for
 students and faculty, where **nobody gets in without a code from an admin**.
-Like the Forms app in this repo, it needs no paid server: a Google Sheet plus
-one Apps Script deployment is the entire backend.
+The backend is a free [Supabase](https://supabase.com) project: a real
+Postgres database with instant message delivery over websockets, at $0 on the
+free tier (no credit card required — if you ever hit limits it throttles, it
+never charges).
 
 ## Features
 
 - **Invite-only**: admins generate single-use codes (student / faculty / admin
   roles) and share them as one-tap join links
+- **Instant delivery**: messages, reactions and votes arrive in real time over
+  Supabase Realtime (with polling as an automatic fallback)
 - **Direct messages** between any two members
 - **Group chats** (floors, clubs, activities…)
 - **Announcement channels**: everyone is in them, only faculty/admins can
@@ -35,40 +39,50 @@ npm run dev        # local development
 npm run build      # production build in messenger/dist/
 ```
 
-## Set up the backend (once, ~3 minutes)
+## Set up the backend (once, ~5 minutes, free)
 
-1. Create a new Google Sheet ([sheets.new](https://sheets.new)).
-2. **Extensions → Apps Script**, delete the sample code, and paste in
-   [`apps-script/Messenger.gs`](apps-script/Messenger.gs).
-3. In the editor toolbar select the function **`setup`** and press **Run**
-   (authorize when asked). This creates the data tabs and writes your one-time
-   **admin invite code** into the *Codes* tab.
-4. **Deploy → New deployment → Web app** with:
-   - *Execute as*: **Me**
-   - *Who has access*: **Anyone**
-5. Copy the **Web app URL** (ends in `/exec`).
-6. Open the messenger, paste the URL as the server link, enter the admin code
-   and your name — you're the admin.
-7. In **⚙️ Admin panel**, generate student/faculty codes and tap **Copy join
-   link** — each link carries the server URL + code, so people just tap, type
-   their name, and they're in.
+1. Create a free project at [supabase.com](https://supabase.com)
+   (no credit card needed).
+2. In the dashboard: **Authentication → Sign In / Up → enable "Anonymous
+   sign-ins"**. Devices sign in anonymously; identity comes from invite
+   codes, not passwords.
+3. **SQL Editor → New query**, paste in the whole of
+   [`supabase/schema.sql`](supabase/schema.sql), and **Run**. The query
+   result shows your one-time **admin invite code**.
+4. **Project Settings → API**: copy the **Project URL** and the
+   **anon public** key.
+5. Open the messenger, paste both, enter the admin code and your name —
+   you're the admin.
+6. In **⚙️ Admin panel**, generate student/faculty codes and tap **Copy join
+   link** — each link carries the project URL, key and code, so people just
+   tap, type their name, and they're in.
 
-## How it works
+## Security model
 
-- The Google Sheet is the database: tabs for Users, Codes, Channels, Messages,
-  Reactions, Votes and Settings. You can watch messages land in real time.
-- All rules are enforced server-side in Apps Script: invite codes are
-  single-use, students can't post in announcement channels or start check-ins,
-  and disabled accounts are cut off immediately.
-- The app polls for new messages (~4s in an open chat, ~8s on the chat list,
-  paused while the app is hidden) — simple and reliable, no push
-  infrastructure to maintain.
-- Signing in stores a private token in `localStorage`; there are no passwords.
+- The anon key in join links is Supabase's *public* client key — it grants
+  nothing by itself. Every read goes through Postgres **row-level security**
+  (you only see channels you're a member of) and every write goes through
+  server-side SQL functions that enforce the rules: invite codes are
+  single-use, students can't post announcements or start check-ins, and
+  disabled accounts are cut off instantly.
+- Accounts are anonymous per device (no passwords). Signing out abandons the
+  device's account — rejoining takes a fresh invite code. Reopening or
+  reinstalling the app on the same browser keeps the account.
+- Admins can inspect or edit all data in the Supabase dashboard
+  (**Table Editor**).
+
+## Free-tier notes
+
+- Free tier includes 500 MB database, 50k monthly active users, 200
+  concurrent realtime connections, 2M realtime messages/month — far more
+  than a dorm needs.
+- Projects **pause after ~1 week with no traffic**; wake them with one click
+  in the dashboard. Daily dorm use keeps it awake on its own.
 
 ## Ideas for later
 
-- Web push notifications (needs a push service / Firebase)
-- Photos and attachments (Sheets isn't great at blobs — would use Drive)
+- Web push notifications (free via a Supabase Edge Function + browser push)
+- Photo attachments (Supabase Storage, 1 GB free)
 - Read receipts, typing indicators, message replies/threads
 - Events board with RSVP (a poll variant), lost & found channel preset
-- Auto-lock student posting during quiet hours (server-side)
+- Auto-lock student posting during quiet hours (enforced in SQL)

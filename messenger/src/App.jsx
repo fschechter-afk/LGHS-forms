@@ -5,7 +5,7 @@ import ChatView from './components/ChatView.jsx'
 import NewChat from './components/NewChat.jsx'
 import Admin from './components/Admin.jsx'
 import { getSession, clearSession } from './storage.js'
-import { flushOutbox } from './api.js'
+import { flushOutbox, supabase } from './api.js'
 import { inQuietHours } from './quietHours.js'
 
 function parseHash() {
@@ -36,7 +36,14 @@ export default function App() {
     return () => window.removeEventListener('online', onOnline)
   }, [session])
 
-  const signOut = () => {
+  const signOut = async () => {
+    // Accounts are anonymous (no password), so signing out abandons this
+    // device's account for good — a new invite code is needed to rejoin.
+    try {
+      await supabase().auth.signOut()
+    } catch {
+      // Already signed out or offline; clear local state regardless.
+    }
     clearSession()
     setSession(null)
     window.location.hash = ''
