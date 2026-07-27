@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { getForm, saveForm, newQuestion, QUESTION_TYPES, getSettings, encodeForm } from '../storage.js'
+import { publishToHub, unpublishFromHub } from '../sheets.js'
 
 export default function Builder({ formId }) {
   const [form, setForm] = useState(() => getForm(formId))
@@ -73,6 +74,42 @@ export default function Builder({ formId }) {
     }
   }
 
+  const [hubBusy, setHubBusy] = useState(false)
+
+  async function publish() {
+    const settings = getSettings()
+    if (!settings.sheetsEndpoint) {
+      alert('Connect Google Sheets first (⚙ Sheets setup) — the hub lives in your spreadsheet.')
+      return
+    }
+    setHubBusy(true)
+    try {
+      await publishToHub(settings.sheetsEndpoint, form, settings.publishKey)
+      update({ published: true })
+      alert(form.published
+        ? 'Hub updated — students now see the latest version.'
+        : 'Published! This form now appears on the student hub.')
+    } catch (err) {
+      alert('Could not publish: ' + err.message)
+    } finally {
+      setHubBusy(false)
+    }
+  }
+
+  async function unpublish() {
+    const settings = getSettings()
+    setHubBusy(true)
+    try {
+      await unpublishFromHub(settings.sheetsEndpoint, form.id, settings.publishKey)
+      update({ published: false })
+      alert('Removed from the student hub.')
+    } catch (err) {
+      alert('Could not unpublish: ' + err.message)
+    } finally {
+      setHubBusy(false)
+    }
+  }
+
   return (
     <div className="page">
       <header className="topbar">
@@ -81,6 +118,12 @@ export default function Builder({ formId }) {
           <span className={`save-tick ${savedTick ? 'show' : ''}`}>Saved ✓</span>
           <a className="btn" href={`#/preview/${form.id}`}>Preview</a>
           <a className="btn" href={`#/responses/${form.id}`}>Responses</a>
+          <button className="btn" disabled={hubBusy} onClick={publish}>
+            {hubBusy ? '…' : form.published ? 'Update hub' : 'Publish to hub'}
+          </button>
+          {form.published && (
+            <button className="btn danger" disabled={hubBusy} onClick={unpublish}>Unpublish</button>
+          )}
           <button className="btn primary" onClick={copyLink}>Share</button>
         </div>
       </header>

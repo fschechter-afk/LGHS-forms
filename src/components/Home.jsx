@@ -34,7 +34,10 @@ export default function Home() {
         <div className="brand">
           <span className="brand-mark">LGHS</span> Forms
         </div>
-        <a className="btn ghost" href="#/settings">⚙ Sheets setup</a>
+        <div className="topbar-actions">
+          <a className="btn ghost" href="#/chat">💬 LGHS Chatbox</a>
+          <a className="btn ghost" href="#/settings">⚙ Sheets setup</a>
+        </div>
       </header>
 
       {!settings.sheetsEndpoint && (

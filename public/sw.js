@@ -1,12 +1,14 @@
 /* Service worker: app-shell caching + offline support.
    Paths are relative so the app works when hosted under a sub-path
    (e.g. GitHub Pages project sites). */
-const CACHE = 'lghs-forms-v2'
+const CACHE = 'lghs-forms-v3'
 const SHELL = './'
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll([SHELL, './manifest.webmanifest', './icon.svg']))
+    caches.open(CACHE).then((cache) =>
+      cache.addAll([SHELL, './manifest.webmanifest', './icon.svg', './handbook.md'])
+    )
   )
   self.skipWaiting()
 })
@@ -24,6 +26,22 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return
   const url = new URL(req.url)
   if (url.origin !== self.location.origin) return
+
+  // Handbook: network first so edits land, cached copy when offline.
+  if (url.pathname.endsWith('/handbook.md')) {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          if (res.ok) {
+            const copy = res.clone()
+            caches.open(CACHE).then((cache) => cache.put(req, copy))
+          }
+          return res
+        })
+        .catch(() => caches.match(req))
+    )
+    return
+  }
 
   // Navigations: network first so updates land, cached shell when offline.
   if (req.mode === 'navigate') {

@@ -101,7 +101,7 @@ export function addResponse(formId, response) {
 // ---- Settings ----
 
 export function getSettings() {
-  return read(SETTINGS_KEY, { sheetsEndpoint: '', sheetUrl: '' })
+  return { sheetsEndpoint: '', sheetUrl: '', publishKey: '', ...read(SETTINGS_KEY, {}) }
 }
 
 export function saveSettings(settings) {
@@ -124,6 +124,21 @@ export function setQueue(items) {
 
 // ---- Share links: form definition travels inside the URL fragment ----
 
+export function encodeText(text) {
+  return btoa(String.fromCharCode(...new TextEncoder().encode(text)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+export function decodeText(encoded) {
+  try {
+    const b64 = encoded.replace(/-/g, '+').replace(/_/g, '/')
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
+    return new TextDecoder().decode(bytes)
+  } catch {
+    return null
+  }
+}
+
 export function encodeForm(form, endpoint) {
   const payload = {
     id: form.id,
@@ -132,17 +147,19 @@ export function encodeForm(form, endpoint) {
     questions: form.questions,
     endpoint: endpoint || '',
   }
-  const json = JSON.stringify(payload)
-  return btoa(String.fromCharCode(...new TextEncoder().encode(json)))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  return encodeText(JSON.stringify(payload))
 }
 
 export function decodeForm(encoded) {
   try {
-    const b64 = encoded.replace(/-/g, '+').replace(/_/g, '/')
-    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
-    return JSON.parse(new TextDecoder().decode(bytes))
+    return JSON.parse(decodeText(encoded))
   } catch {
     return null
   }
+}
+
+// ---- Student hub: one permanent link listing published forms ----
+
+export function hubLink(endpoint) {
+  return `${location.origin}${location.pathname}#/hub/${encodeText(endpoint)}`
 }
