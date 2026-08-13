@@ -12,4 +12,5 @@
 // permissions are enforced server-side by the SQL in supabase/schema.sql.
 
 export const SUPABASE_URL = 'https://aheiyytqvzxkoowykkgt.supabase.co'
-export const SUPABASE_ANON_KEY = ''
+export const SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZWl5eXRxdnp4a29vd3lra2d0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2MDI2MDksImV4cCI6MjA5ODE3ODYwOX0.7sUnV4JvXYwfkiZZFJBWTilJw3cxvl0e-B9sZW9CroY'
