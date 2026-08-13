@@ -11,5 +11,5 @@
 // The anon key is Supabase's *public* client key — safe to commit. All real
 // permissions are enforced server-side by the SQL in supabase/schema.sql.
 
-export const SUPABASE_URL = ''
+export const SUPABASE_URL = 'https://aheiyytqvzxkoowykkgt.supabase.co'
 export const SUPABASE_ANON_KEY = ''
