@@ -1,9 +1,11 @@
 import React, { useMemo, useState } from 'react'
 import { join } from '../api.js'
 import { setSession } from '../storage.js'
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config.js'
 
-// Join links look like  #join=<base64 of {"u": projectUrl, "k": anonKey, "c": code}>
-// so an admin hands out a single link instead of three things to paste.
+// Join links look like  #join=<base64 of {"c": code}>  when the app is
+// configured (src/config.js), or carry "u" and "k" too when it isn't —
+// either way an admin hands out a single link.
 function decodeJoinPayload(payload) {
   try {
     return JSON.parse(atob(decodeURIComponent(payload)))
@@ -14,14 +16,14 @@ function decodeJoinPayload(payload) {
 
 export default function Join({ joinPayload, onJoined }) {
   const prefill = useMemo(() => (joinPayload ? decodeJoinPayload(joinPayload) : {}), [joinPayload])
-  const [url, setUrl] = useState(prefill.u || '')
-  const [key, setKey] = useState(prefill.k || '')
+  const [url, setUrl] = useState(prefill.u || SUPABASE_URL || '')
+  const [key, setKey] = useState(prefill.k || SUPABASE_ANON_KEY || '')
   const [code, setCode] = useState(prefill.c || '')
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
-  const manual = !prefill.u || !prefill.k
+  const manual = !(prefill.u || SUPABASE_URL) || !(prefill.k || SUPABASE_ANON_KEY)
 
   const submit = async (e) => {
     e.preventDefault()

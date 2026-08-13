@@ -51,11 +51,15 @@ npm run build      # production build in messenger/dist/
    result shows your one-time **admin invite code**.
 4. **Project Settings → API**: copy the **Project URL** and the
    **anon public** key.
-5. Open the messenger, paste both, enter the admin code and your name —
-   you're the admin.
-6. In **⚙️ Admin panel**, generate student/faculty codes and tap **Copy join
-   link** — each link carries the project URL, key and code, so people just
-   tap, type their name, and they're in.
+5. **Recommended**: paste those two values into
+   [`src/config.js`](src/config.js) and commit — once the app is rebuilt and
+   deployed, nobody ever sees a URL or key again: the join screen only asks
+   for an invite code and a name. (Without this step the app still works;
+   the join screen just shows two extra fields, which join links fill in
+   automatically.)
+6. Open the messenger, enter the admin code and your name — you're the admin.
+7. In **⚙️ Admin panel**, generate student/faculty codes and tap **Copy join
+   link** — people just tap the link, type their name, and they're in.
 
 ## Security model
 

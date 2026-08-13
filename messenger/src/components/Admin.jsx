@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { call } from '../api.js'
 import { getSession, setSession as persistSession } from '../storage.js'
 import { parseQuietHours } from '../quietHours.js'
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config.js'
 
 // Everything an admin needs day to day: invite codes (+ shareable join
 // links), user management, and dorm-wide settings like quiet hours.
@@ -44,7 +45,10 @@ export default function Admin({ session, onSettingsChanged, onBack }) {
   }
 
   const joinLink = (code) => {
-    const payload = btoa(JSON.stringify({ u: session.url, k: session.key, c: code }))
+    // When the app is built with its Supabase config baked in, links only
+    // need to carry the code — much shorter and nicer to send.
+    const baked = SUPABASE_URL === session.url && SUPABASE_ANON_KEY === session.key
+    const payload = btoa(JSON.stringify(baked ? { c: code } : { u: session.url, k: session.key, c: code }))
     const base = window.location.href.split('#')[0]
     return base + '#join=' + encodeURIComponent(payload)
   }
