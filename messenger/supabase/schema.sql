@@ -429,6 +429,31 @@ begin
   return (select coalesce(jsonb_object_agg(key, value), '{}'::jsonb) from settings);
 end $$;
 
+-- ---------------------------------------------------------------- grants
+-- Only signed-in users may call the API functions; anonymous visitors and
+-- the internal-only helpers are locked out at the grant level.
+
+revoke execute on function public.redeem_invite(text, text) from public, anon;
+revoke execute on function public.create_dm(uuid) from public, anon;
+revoke execute on function public.create_group(text, uuid[]) from public, anon;
+revoke execute on function public.create_announcement(text) from public, anon;
+revoke execute on function public.send_message(uuid, text, text, jsonb) from public, anon;
+revoke execute on function public.toggle_reaction(uuid, text) from public, anon;
+revoke execute on function public.set_vote(uuid, int) from public, anon;
+revoke execute on function public.delete_message(uuid) from public, anon;
+revoke execute on function public.admin_create_codes(text, int, text) from public, anon;
+revoke execute on function public.admin_set_status(uuid, text) from public, anon;
+revoke execute on function public.admin_set_setting(text, text) from public, anon;
+
+-- Helpers used by RLS policies: authenticated keeps execute; anon loses it.
+revoke execute on function public.is_active(uuid) from public, anon;
+revoke execute on function public.my_role() from public, anon;
+revoke execute on function public.is_member(uuid, uuid) from public, anon;
+revoke execute on function public.can_post(uuid, uuid) from public, anon;
+
+-- Only used inside security-definer functions; no client role needs it.
+revoke execute on function public.random_code(text) from public, anon, authenticated;
+
 -- ---------------------------------------------------------------- realtime
 
 alter publication supabase_realtime add table public.messages;
