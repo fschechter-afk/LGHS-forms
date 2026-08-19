@@ -22,17 +22,19 @@ create extension if not exists pgcrypto;
 create table public.profiles (
   id         uuid primary key references auth.users (id) on delete cascade,
   name       text not null check (char_length(name) between 1 and 40),
-  role       text not null default 'student' check (role in ('student', 'faculty', 'admin')),
+  role       text not null default 'student' check (role in ('student', 'parent', 'staff', 'admin')),
   status     text not null default 'active' check (status in ('active', 'disabled')),
   created_at timestamptz not null default now()
 );
 
 create table public.invite_codes (
   code       text primary key,
-  role       text not null default 'student' check (role in ('student', 'faculty', 'admin')),
+  role       text not null default 'student' check (role in ('student', 'parent', 'staff', 'admin')),
   note       text not null default '',
-  used_by    uuid references public.profiles (id),
-  created_by uuid references public.profiles (id),
+  max_uses   int not null default 1,   -- 0 = shared code, unlimited uses
+  use_count  int not null default 0,
+  used_by    uuid references public.profiles (id) on delete set null,
+  created_by uuid references public.profiles (id) on delete set null,
   created_at timestamptz not null default now()
 );
 
@@ -41,7 +43,7 @@ create table public.channels (
   type             text not null check (type in ('dm', 'group', 'announcement')),
   name             text not null default '',
   dm_key           text unique,  -- "uuid|uuid" (sorted) so a DM pair exists once
-  created_by       uuid references public.profiles (id),
+  created_by       uuid references public.profiles (id) on delete set null,
   created_at       timestamptz not null default now(),
   last_msg_at      timestamptz not null default now(),
   last_msg_preview text not null default ''
@@ -56,7 +58,7 @@ create table public.channel_members (
 create table public.messages (
   id         uuid primary key default gen_random_uuid(),
   channel_id uuid not null references public.channels (id) on delete cascade,
-  user_id    uuid not null references public.profiles (id),
+  user_id    uuid not null references public.profiles (id) on delete cascade,
   kind       text not null default 'text' check (kind in ('text', 'poll', 'checkin', 'deleted')),
   body       text not null default '',
   data       jsonb,
@@ -115,7 +117,7 @@ returns boolean language sql stable security definer set search_path = public as
     select 1 from channels c
     where c.id = ch
       and (c.type <> 'announcement'
-           or exists (select 1 from profiles p where p.id = uid and p.role in ('faculty', 'admin')))
+           or exists (select 1 from profiles p where p.id = uid and p.role in ('staff', 'admin')))
   );
 $$;
 
@@ -190,7 +192,7 @@ begin
   if not found then
     raise exception 'That invite code is not valid.';
   end if;
-  if v_code.used_by is not null then
+  if v_code.max_uses > 0 and v_code.use_count >= v_code.max_uses then
     raise exception 'That invite code was already used.';
   end if;
   if p_name is null or char_length(trim(p_name)) = 0 then
@@ -201,7 +203,9 @@ begin
   values (v_uid, left(trim(p_name), 40), v_code.role)
   returning * into v_prof;
 
-  update invite_codes set used_by = v_uid where code = v_code.code;
+  update invite_codes
+     set use_count = use_count + 1, used_by = coalesce(used_by, v_uid)
+   where code = v_code.code;
 
   -- Make sure the school-wide announcements channel exists.
   if not exists (select 1 from channels where type = 'announcement') then
@@ -296,8 +300,8 @@ begin
   end if;
 
   if v_kind = 'checkin' then
-    if my_role() not in ('faculty', 'admin') then
-      raise exception 'Only faculty can start a check-in.';
+    if my_role() not in ('staff', 'admin') then
+      raise exception 'Only staff can start a check-in.';
     end if;
     v_data := jsonb_build_object('options', jsonb_build_array('I''m here ✔'));
   elsif v_kind = 'poll' then
@@ -376,7 +380,7 @@ begin
   if not found then
     raise exception 'Message not found.';
   end if;
-  if v_msg.user_id <> v_uid and coalesce(my_role(), 'student') not in ('faculty', 'admin') then
+  if v_msg.user_id <> v_uid and coalesce(my_role(), 'student') not in ('staff', 'admin') then
     raise exception 'You can only delete your own messages.';
   end if;
   update messages set kind = 'deleted', body = '', data = null where id = p_message;
@@ -384,23 +388,60 @@ end $$;
 
 -- ---------------------------------------------------------------- rpc: admin
 
-create or replace function public.admin_create_codes(p_role text, p_count int, p_note text default '')
+-- p_shared = true creates one code with unlimited uses (a whole role can
+-- share it); admin codes must stay single-use so admin access is deliberate.
+create or replace function public.admin_create_codes(p_role text, p_count int, p_note text default '', p_shared boolean default false)
 returns setof text language plpgsql volatile security definer set search_path = public as $$
 declare
   v_code text;
+  v_n int := case when p_shared then 1 else least(greatest(p_count, 1), 50) end;
 begin
   if my_role() <> 'admin' then
     raise exception 'Admins only.';
   end if;
-  if p_role not in ('student', 'faculty', 'admin') then
+  if p_role not in ('student', 'parent', 'staff', 'admin') then
     raise exception 'Invalid role.';
   end if;
-  for i in 1 .. least(greatest(p_count, 1), 50) loop
+  if p_shared and p_role = 'admin' then
+    raise exception 'Admin codes must stay single-use.';
+  end if;
+  for i in 1 .. v_n loop
     v_code := random_code(upper(left(p_role, 3)));
-    insert into invite_codes (code, role, note, created_by)
-    values (v_code, p_role, coalesce(p_note, ''), auth.uid());
+    insert into invite_codes (code, role, note, created_by, max_uses)
+    values (v_code, p_role, coalesce(p_note, ''), auth.uid(), case when p_shared then 0 else 1 end);
     return next v_code;
   end loop;
+end $$;
+
+-- Revoke a code: stops all future joins with it; existing members keep access.
+create or replace function public.admin_delete_code(p_code text)
+returns void language plpgsql volatile security definer set search_path = public as $$
+begin
+  if my_role() <> 'admin' then
+    raise exception 'Admins only.';
+  end if;
+  delete from invite_codes where code = p_code;
+  if not found then
+    raise exception 'Code not found.';
+  end if;
+end $$;
+
+-- Remove a user entirely: their account, memberships, messages, reactions
+-- and votes are deleted. Use "disable" instead to block someone but keep
+-- their messages.
+create or replace function public.admin_remove_user(p_user uuid)
+returns void language plpgsql volatile security definer set search_path = public as $$
+begin
+  if my_role() <> 'admin' then
+    raise exception 'Admins only.';
+  end if;
+  if p_user = auth.uid() then
+    raise exception 'You cannot remove yourself.';
+  end if;
+  delete from profiles where id = p_user;
+  if not found then
+    raise exception 'User not found.';
+  end if;
 end $$;
 
 create or replace function public.admin_set_status(p_user uuid, p_status text)
@@ -441,7 +482,9 @@ revoke execute on function public.send_message(uuid, text, text, jsonb) from pub
 revoke execute on function public.toggle_reaction(uuid, text) from public, anon;
 revoke execute on function public.set_vote(uuid, int) from public, anon;
 revoke execute on function public.delete_message(uuid) from public, anon;
-revoke execute on function public.admin_create_codes(text, int, text) from public, anon;
+revoke execute on function public.admin_create_codes(text, int, text, boolean) from public, anon;
+revoke execute on function public.admin_delete_code(text) from public, anon;
+revoke execute on function public.admin_remove_user(uuid) from public, anon;
 revoke execute on function public.admin_set_status(uuid, text) from public, anon;
 revoke execute on function public.admin_set_setting(text, text) from public, anon;
 

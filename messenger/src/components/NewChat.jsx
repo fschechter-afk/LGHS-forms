@@ -98,7 +98,7 @@ export default function NewChat({ session, onBack }) {
         {users === null && !error && <div className="empty">Loading directory…</div>}
         {visible.map((u) => (
           <button key={u.id} className="chat-row" disabled={busy} onClick={() => toggle(u)}>
-            <div className="chat-avatar">{u.role === 'faculty' ? '🎓' : u.role === 'admin' ? '🛡️' : '🙂'}</div>
+            <div className="chat-avatar">{u.role === 'staff' ? '🎓' : u.role === 'admin' ? '🛡️' : u.role === 'parent' ? '🏠' : '🙂'}</div>
             <div className="chat-row-main">
               <div className="chat-row-top">
                 <span className="chat-name">{u.name}</span>

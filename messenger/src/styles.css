@@ -415,7 +415,7 @@ select:focus {
   margin-bottom: 2px;
 }
 
-.bubble-author.role-faculty {
+.bubble-author.role-staff {
   color: #ffd166;
 }
 
@@ -723,6 +723,36 @@ select:focus {
   color: #f4a4ff;
 }
 
-.role-tag.role-faculty {
+.role-tag.role-staff {
   color: #ffd166;
+}
+
+.role-tag.role-parent,
+.bubble-author.role-parent {
+  color: #7fd4a8;
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-dim);
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+.check-row input {
+  width: auto;
+}
+
+.code-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.code-list .btn-secondary {
+  margin-left: 0;
 }

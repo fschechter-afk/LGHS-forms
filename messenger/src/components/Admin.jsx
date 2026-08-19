@@ -13,6 +13,7 @@ export default function Admin({ session, onSettingsChanged, onBack }) {
   const [notice, setNotice] = useState('')
   const [codeRole, setCodeRole] = useState('student')
   const [codeCount, setCodeCount] = useState(5)
+  const [codeShared, setCodeShared] = useState(true)
   const [quietHours, setQuietHours] = useState(session.settings?.quietHours || '')
   const [busy, setBusy] = useState(false)
 
@@ -33,14 +34,39 @@ export default function Admin({ session, onSettingsChanged, onBack }) {
   const makeCodes = async () => {
     setBusy(true)
     setError('')
+    const shared = codeShared && codeRole !== 'admin'
     try {
-      const data = await call('admin', { op: 'createCodes', role: codeRole, count: codeCount })
-      setNotice('Created ' + data.codes.length + ' code(s): ' + data.codes.join(', '))
+      const data = await call('admin', { op: 'createCodes', role: codeRole, count: codeCount, shared })
+      setNotice(
+        shared
+          ? 'Shared ' + codeRole + ' code created: ' + data.codes[0] + ' — everyone can use it.'
+          : 'Created ' + data.codes.length + ' single-use code(s): ' + data.codes.join(', ')
+      )
       refresh()
     } catch (err) {
       setError(err.message)
     } finally {
       setBusy(false)
+    }
+  }
+
+  const revokeCode = async (code) => {
+    if (!confirm('Revoke code ' + code.code + '? Nobody new can join with it (current members keep access).')) return
+    try {
+      await call('admin', { op: 'deleteCode', code: code.code })
+      refresh()
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  const removeUser = async (user) => {
+    if (!confirm('Remove ' + user.name + ' completely? Their account AND all their messages are deleted. Use Disable instead to block them but keep their messages.')) return
+    try {
+      await call('admin', { op: 'removeUser', userId: user.id })
+      refresh()
+    } catch (err) {
+      setError(err.message)
     }
   }
 
@@ -56,7 +82,7 @@ export default function Admin({ session, onSettingsChanged, onBack }) {
   const copyLink = async (code) => {
     try {
       await navigator.clipboard.writeText(joinLink(code))
-      setNotice('Join link for ' + code + ' copied — send it to one person.')
+      setNotice('Join link for ' + code + ' copied.')
     } catch {
       prompt('Copy this join link:', joinLink(code))
     }
@@ -100,7 +126,7 @@ export default function Admin({ session, onSettingsChanged, onBack }) {
     }
   }
 
-  const unused = codes.filter((c) => !c.used)
+  const visibleCodes = codes.filter((c) => c.shared || !c.used)
 
   return (
     <div className="screen">
@@ -127,33 +153,52 @@ export default function Admin({ session, onSettingsChanged, onBack }) {
 
         <section className="admin-card">
           <h2>Invite codes</h2>
-          <p className="hint">Each code admits one person. Copy a join link and send it privately.</p>
+          <p className="hint">
+            A <strong>shared</strong> code can be used by everyone in that role (send one link to the
+            whole group). Single-use codes admit one person each. Revoking a code stops new joins;
+            people already in keep access.
+          </p>
           <div className="admin-row">
             <select value={codeRole} onChange={(e) => setCodeRole(e.target.value)}>
               <option value="student">Student</option>
-              <option value="faculty">Faculty</option>
+              <option value="parent">Parent</option>
+              <option value="staff">Staff</option>
               <option value="admin">Admin</option>
             </select>
-            <input
-              type="number"
-              min="1"
-              max="50"
-              value={codeCount}
-              onChange={(e) => setCodeCount(Number(e.target.value))}
-            />
+            {!(codeShared && codeRole !== 'admin') && (
+              <input
+                type="number"
+                min="1"
+                max="50"
+                value={codeCount}
+                onChange={(e) => setCodeCount(Number(e.target.value))}
+              />
+            )}
             <button className="btn-primary" onClick={makeCodes} disabled={busy}>
               Generate
             </button>
           </div>
-          {unused.length > 0 && (
+          {codeRole !== 'admin' && (
+            <label className="check-row">
+              <input type="checkbox" checked={codeShared} onChange={(e) => setCodeShared(e.target.checked)} />
+              Shared code (one code for the whole {codeRole} group)
+            </label>
+          )}
+          {visibleCodes.length > 0 && (
             <ul className="code-list">
-              {unused.map((c) => (
+              {visibleCodes.map((c) => (
                 <li key={c.code}>
                   <code>{c.code}</code>
                   <span className={'role-tag role-' + c.role}>{c.role}</span>
-                  <button className="btn-secondary" onClick={() => copyLink(c.code)}>
-                    Copy join link
-                  </button>
+                  {c.shared && <span className="role-tag">shared · {c.uses} joined</span>}
+                  <span className="code-actions">
+                    <button className="btn-secondary" onClick={() => copyLink(c.code)}>
+                      Copy link
+                    </button>
+                    <button className="btn-danger" onClick={() => revokeCode(c)}>
+                      Revoke
+                    </button>
+                  </span>
                 </li>
               ))}
             </ul>
@@ -167,16 +212,21 @@ export default function Admin({ session, onSettingsChanged, onBack }) {
               <li key={u.id}>
                 <span className="chat-name">{u.name}</span>
                 <span className={'role-tag role-' + u.role}>{u.role}</span>
-                {u.status === 'active' ? (
-                  u.id !== session.user.id && (
-                    <button className="btn-danger" onClick={() => setStatus(u, 'disabled')}>
-                      Disable
+                {u.id !== session.user.id && (
+                  <span className="code-actions">
+                    {u.status === 'active' ? (
+                      <button className="btn-secondary" onClick={() => setStatus(u, 'disabled')}>
+                        Disable
+                      </button>
+                    ) : (
+                      <button className="btn-secondary" onClick={() => setStatus(u, 'active')}>
+                        Re-enable
+                      </button>
+                    )}
+                    <button className="btn-danger" onClick={() => removeUser(u)}>
+                      Remove
                     </button>
-                  )
-                ) : (
-                  <button className="btn-secondary" onClick={() => setStatus(u, 'active')}>
-                    Re-enable
-                  </button>
+                  </span>
                 )}
               </li>
             ))}
@@ -204,7 +254,7 @@ export default function Admin({ session, onSettingsChanged, onBack }) {
         <section className="admin-card">
           <h2>Channels</h2>
           <p className="hint">
-            Announcement channels include everyone; only faculty and admins can post in them.
+            Announcement channels include everyone; only staff and admins can post in them.
           </p>
           <button className="btn-secondary" onClick={createAnnouncementChannel}>
             ＋ New announcement channel

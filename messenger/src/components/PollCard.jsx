@@ -1,6 +1,6 @@
 import React from 'react'
 
-// Renders both regular polls and faculty check-ins (a one-option poll whose
+// Renders both regular polls and staff check-ins (a one-option poll whose
 // results read as an attendance list).
 export default function PollCard({ message, votes, onVote }) {
   const options = message.data?.options || []
