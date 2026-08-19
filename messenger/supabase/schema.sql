@@ -1,4 +1,4 @@
--- LJHS Dorm Messenger — Supabase backend.
+-- LGHS Dorm Messenger — Supabase backend.
 --
 -- Setup (once, ~5 minutes, free tier):
 --  1. Create a free project at https://supabase.com (no credit card needed).

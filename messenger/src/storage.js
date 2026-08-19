@@ -1,7 +1,7 @@
 // All local state lives under one localStorage key: the signed-in session,
 // per-channel read markers, and the offline outbox.
 
-const KEY = 'ljhs-messenger-v1'
+const KEY = 'lghs-messenger-v1'
 
 function load() {
   try {
