@@ -1,7 +1,7 @@
-// LJHS Dorm Messenger service worker: cache the app shell so the PWA opens
+// LGHS Dorm Messenger service worker: cache the app shell so the PWA opens
 // offline. API calls (Apps Script) are network-only — messages come from the
 // outbox queue in the app itself when offline.
-const CACHE = 'ljhs-messenger-v1'
+const CACHE = 'lghs-messenger-v1'
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

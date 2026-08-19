@@ -52,7 +52,7 @@ export default function ChatList({ session, onSignOut }) {
     <div className="screen">
       <header className="topbar">
         <div className="topbar-title">
-          <h1>LJHS Messenger</h1>
+          <h1>LGHS Messenger</h1>
           <span className="topbar-sub">
             {session.user.name} · {session.user.role}
           </span>
