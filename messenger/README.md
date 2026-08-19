@@ -1,7 +1,7 @@
 # LGHS Dorm Messenger
 
 A private, invite-only messaging PWA for dorm life — WhatsApp-style chat for
-students and faculty, where **nobody gets in without a code from an admin**.
+students, parents and staff, where **nobody gets in without a code from an admin**.
 The backend is a free [Supabase](https://supabase.com) project: a real
 Postgres database with instant message delivery over websockets, at $0 on the
 free tier (no credit card required — if you ever hit limits it throttles, it
@@ -9,24 +9,24 @@ never charges).
 
 ## Features
 
-- **Invite-only**: admins generate single-use codes (student / faculty / admin
-  roles) and share them as one-tap join links
+- **Invite-only**: admins generate invite codes per role (student / parent / staff / admin) — a **shared** code the whole group reuses, or single-use codes
+  — and share them as one-tap join links; codes can be revoked anytime
 - **Instant delivery**: messages, reactions and votes arrive in real time over
   Supabase Realtime (with polling as an automatic fallback)
 - **Direct messages** between any two members
 - **Group chats** (floors, clubs, activities…)
-- **Announcement channels**: everyone is in them, only faculty/admins can
+- **Announcement channels**: everyone is in them, only staff/admins can
   post; students can still react and vote
 - **Quick emoji reactions**: 👍 ❤️ 😂 😮 🙏 ✅ — tap 🙂+ (or double-tap a
   bubble for a quick 👍); tap a chip again to remove yours
 - **Polls**: up to 8 options, live results, one vote per person (re-vote to
   switch)
-- **Check-in / roll call** (dorm special): faculty sends a one-tap
+- **Check-in / roll call** (dorm special): staff send a one-tap
   "I'm here ✔" request and watches the attendance list fill in live
 - **Quiet hours**: admin sets a window (e.g. `21:30-07:00`); the app shows a
   🌙 banner during it
-- **Moderation**: authors, faculty and admins can delete messages; admins can
-  disable accounts instantly
+- **Moderation**: authors, staff and admins can delete messages; admins can
+  disable accounts instantly, or remove a user entirely (account + their messages)
 - **PWA**: installable on phones, opens offline, queues messages written
   offline and sends them when back online
 
@@ -58,7 +58,7 @@ npm run build      # production build in messenger/dist/
    the join screen just shows two extra fields, which join links fill in
    automatically.)
 6. Open the messenger, enter the admin code and your name — you're the admin.
-7. In **⚙️ Admin panel**, generate student/faculty codes and tap **Copy join
+7. In **⚙️ Admin panel**, generate codes and tap **Copy join
    link** — people just tap the link, type their name, and they're in.
 
 ## Security model

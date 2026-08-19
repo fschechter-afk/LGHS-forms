@@ -150,7 +150,7 @@ export async function call(action, params = {}) {
       }
 
       const canPost =
-        channel.type !== 'announcement' || me.role === 'admin' || me.role === 'faculty'
+        channel.type !== 'announcement' || me.role === 'admin' || me.role === 'staff'
 
       return {
         ok: true,
@@ -208,21 +208,41 @@ async function adminCall(params) {
         p_role: params.role,
         p_count: params.count,
         p_note: params.note || '',
+        p_shared: !!params.shared,
       })
       return { ok: true, codes }
     }
     case 'listCodes': {
       const rows = await select(
-        supabase().from('invite_codes').select('code, role, note, used_by').order('created_at', { ascending: false })
+        supabase()
+          .from('invite_codes')
+          .select('code, role, note, used_by, max_uses, use_count')
+          .order('created_at', { ascending: false })
       )
-      return { ok: true, codes: rows.map((c) => ({ code: c.code, role: c.role, note: c.note, used: !!c.used_by })) }
+      return {
+        ok: true,
+        codes: rows.map((c) => ({
+          code: c.code,
+          role: c.role,
+          note: c.note,
+          shared: c.max_uses === 0,
+          uses: c.use_count || 0,
+          used: c.max_uses > 0 && (c.use_count || 0) >= c.max_uses,
+        })),
+      }
     }
+    case 'deleteCode':
+      await rpc('admin_delete_code', { p_code: params.code })
+      return { ok: true }
     case 'listUsers': {
       const rows = await select(supabase().from('profiles').select('id, name, role, status').order('name'))
       return { ok: true, users: rows }
     }
     case 'setUserStatus':
       await rpc('admin_set_status', { p_user: params.userId, p_status: params.status })
+      return { ok: true }
+    case 'removeUser':
+      await rpc('admin_remove_user', { p_user: params.userId })
       return { ok: true }
     case 'setSetting': {
       const settings = await rpc('admin_set_setting', { p_key: params.key, p_value: params.value })

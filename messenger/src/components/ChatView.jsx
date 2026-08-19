@@ -159,8 +159,8 @@ export default function ChatView({ channelId, session, quiet, onBack }) {
     }
   }
 
-  const canModerate = session.user.role === 'admin' || session.user.role === 'faculty'
-  const isFaculty = canModerate
+  const canModerate = session.user.role === 'admin' || session.user.role === 'staff'
+  const isStaff = canModerate
   let lastDay = ''
 
   return (
@@ -291,7 +291,7 @@ export default function ChatView({ channelId, session, quiet, onBack }) {
             <button className="btn-primary" onClick={() => sendPoll('poll')}>
               Send poll
             </button>
-            {isFaculty && (
+            {isStaff && (
               <button className="btn-secondary" title="One-tap roll call" onClick={() => sendPoll('checkin')}>
                 🙋 Send as check-in
               </button>
@@ -316,7 +316,7 @@ export default function ChatView({ channelId, session, quiet, onBack }) {
           </button>
         </form>
       ) : (
-        <div className="composer readonly">Only faculty and admins can post here. You can still react and vote.</div>
+        <div className="composer readonly">Only staff and admins can post here. You can still react and vote.</div>
       )}
     </div>
   )
