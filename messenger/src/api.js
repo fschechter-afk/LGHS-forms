@@ -82,6 +82,12 @@ export async function myRecoveryCode() {
   return rpc('my_recovery_code', {})
 }
 
+// Retires the current restore code and issues a new one, for when someone
+// thinks theirs has been seen.
+export async function regenerateRecoveryCode() {
+  return rpc('regenerate_my_recovery_code', {})
+}
+
 // ---------------------------------------------------------------- actions
 
 export async function call(action, params = {}) {

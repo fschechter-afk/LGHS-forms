@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { call, onChannelListActivity, myRecoveryCode } from '../api.js'
+import { call, onChannelListActivity, myRecoveryCode, regenerateRecoveryCode } from '../api.js'
 import { getLastRead } from '../storage.js'
 
 const CHANNEL_ICONS = { announcement: '📣', group: '👥', dm: '💬' }
@@ -52,16 +52,27 @@ export default function ChatList({ session, onSignOut }) {
   // way back after a sign-out, a wipe, or a new phone. Make it easy to save.
   const showRestoreCode = async () => {
     try {
-      const code = session.user.recoveryCode || (await myRecoveryCode())
+      // Always ask the server: a code stored at join time goes stale if it
+      // was later regenerated on another device.
+      const code = await myRecoveryCode()
       const msg =
         'Your restore code:\n\n' +
         code +
-        '\n\nSave this somewhere safe. It is the only way to get this account — and its chats — back on a new phone or after signing out. Do not share it.'
+        '\n\nSave this somewhere safe. It is the only way to get this account — and its chats — back on a new phone or after signing out. Do not share it: anyone who has it can take over your account.'
       try {
         await navigator.clipboard.writeText(code)
         alert(msg + '\n\n(Copied to your clipboard.)')
       } catch {
         prompt(msg, code)
+      }
+      if (confirm('Need a new code instead? Tap OK to replace it — the old one stops working immediately.')) {
+        const fresh = await regenerateRecoveryCode()
+        try {
+          await navigator.clipboard.writeText(fresh)
+        } catch {
+          // Clipboard unavailable; the code is still shown below.
+        }
+        alert('Your new restore code:\n\n' + fresh + '\n\nThe previous code no longer works.')
       }
     } catch (err) {
       alert('Could not load your restore code: ' + err.message)
