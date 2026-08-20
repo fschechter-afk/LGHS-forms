@@ -64,14 +64,14 @@ export default function ChatList({ session, onSignOut }) {
             </button>
           )}
           <button
-            className="icon-btn"
+            className="signout-btn"
             title="Sign out"
             onClick={() => {
               if (confirm('Sign out? You will need a new invite code to get back in on this device.'))
                 onSignOut()
             }}
           >
-            ↩
+            Sign out
           </button>
         </div>
       </header>

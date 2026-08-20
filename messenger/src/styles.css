@@ -111,6 +111,21 @@ select:focus {
   background: var(--border);
 }
 
+/* Spelled out rather than an icon: "sign out" has no glyph people reliably
+   recognise, and it is destructive here (the account is abandoned). */
+.signout-btn {
+  font-size: 13px;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  white-space: nowrap;
+}
+
+.signout-btn:active {
+  background: var(--border);
+}
+
 /* ---------- banners ---------- */
 
 .quiet-banner {
