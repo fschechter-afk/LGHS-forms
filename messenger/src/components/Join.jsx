@@ -59,7 +59,7 @@ export default function Join({ joinPayload, joinCode, onJoined }) {
     <div className="join-screen">
       <div className="join-card">
         <img className="join-logo" src="./logo-white-256.png" alt="LGHS" />
-        <h1>LGHS Dorm Messenger</h1>
+        <h1>LGHS School Messenger</h1>
         <p className="join-sub">
           Private, invite-only messaging for students, parents and staff. Ask your dorm admin for an invite
           code or a join link.

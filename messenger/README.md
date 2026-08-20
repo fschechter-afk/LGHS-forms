@@ -1,4 +1,4 @@
-# LGHS Dorm Messenger
+# LGHS School Messenger
 
 A private, invite-only messaging PWA for dorm life — WhatsApp-style chat for
 students, parents and staff, where **nobody gets in without a code from an admin**.
