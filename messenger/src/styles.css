@@ -50,7 +50,12 @@ button {
 
 input,
 select {
-  font: inherit;
+  font-family: inherit;
+  /* Fixed at 16px regardless of an inherited container size (e.g. a label's
+     hint-text size): iOS Safari auto-zooms the whole page on focus for any
+     input under 16px, and the zoom can stay stuck after — exactly what
+     happened on the join screen, whose inputs sit inside a 13px label. */
+  font-size: 16px;
   color: var(--text);
   background: var(--panel-2);
   border: 1px solid var(--border);
