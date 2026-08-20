@@ -129,6 +129,44 @@ export async function call(action, params = {}) {
       }
     }
 
+    case 'channelMembers': {
+      const me = getSession().user
+      const [channelRows, memberRows, profiles] = await Promise.all([
+        select(supabase().from('channels').select('id, type, name, created_by').eq('id', params.channelId)),
+        select(supabase().from('channel_members').select('user_id').eq('channel_id', params.channelId)),
+        select(supabase().from('profiles').select('id, name, role').eq('status', 'active').order('name')),
+      ])
+      const channel = channelRows[0]
+      if (!channel) throw Object.assign(new Error('Group not found'), { code: 'forbidden' })
+      const memberIds = new Set(memberRows.map((m) => m.user_id))
+      const canManage =
+        channel.type === 'group' &&
+        (channel.created_by === me.id || me.role === 'staff' || me.role === 'admin')
+      return {
+        ok: true,
+        channel,
+        canManage,
+        members: profiles.filter((p) => memberIds.has(p.id)),
+        others: profiles.filter((p) => !memberIds.has(p.id)),
+      }
+    }
+
+    case 'addMembers': {
+      const added = await rpc('add_channel_members', {
+        p_channel: params.channelId,
+        p_members: params.memberIds,
+      })
+      return { ok: true, added }
+    }
+
+    case 'removeMember':
+      await rpc('remove_channel_member', { p_channel: params.channelId, p_user: params.userId })
+      return { ok: true }
+
+    case 'leaveChannel':
+      await rpc('leave_channel', { p_channel: params.channelId })
+      return { ok: true }
+
     case 'createChannel': {
       let channelId
       if (params.type === 'dm') channelId = await rpc('create_dm', { p_other: params.memberIds[0] })
