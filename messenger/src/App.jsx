@@ -36,6 +36,15 @@ export default function App() {
     return () => window.removeEventListener('online', onOnline)
   }, [session])
 
+  // An existing member who taps an invite link again (they saved it, or it
+  // got re-shared) should land in their chats, not back on the join form.
+  useEffect(() => {
+    if (session && route.view === 'joinLink') {
+      window.location.hash = ''
+      setRoute({ view: 'chats' })
+    }
+  }, [session, route.view])
+
   const signOut = async () => {
     // Accounts are anonymous (no password), so signing out abandons this
     // device's account for good — a new invite code is needed to rejoin.
@@ -49,7 +58,7 @@ export default function App() {
     window.location.hash = ''
   }
 
-  if (!session || route.view === 'joinLink') {
+  if (!session) {
     return (
       <Join
         joinPayload={route.view === 'joinLink' ? route.payload : null}
