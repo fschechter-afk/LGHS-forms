@@ -38,3 +38,11 @@ export async function compressImage(file) {
 export function isImage(file) {
   return !!file && file.type.startsWith('image/')
 }
+
+export function isPdf(file) {
+  return !!file && file.type === 'application/pdf'
+}
+
+// Matches the bucket's file_size_limit; PDFs can't be shrunk on the device
+// the way photos can, so oversized ones are rejected with a clear message.
+export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024

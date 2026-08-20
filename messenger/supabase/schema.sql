@@ -59,7 +59,7 @@ create table public.messages (
   id         uuid primary key default gen_random_uuid(),
   channel_id uuid not null references public.channels (id) on delete cascade,
   user_id    uuid not null references public.profiles (id) on delete cascade,
-  kind       text not null default 'text' check (kind in ('text', 'poll', 'checkin', 'image', 'deleted')),
+  kind       text not null default 'text' check (kind in ('text', 'poll', 'checkin', 'image', 'file', 'deleted')),
   body       text not null default '',
   data       jsonb,
   created_at timestamptz not null default now()
@@ -295,11 +295,11 @@ begin
   if not can_post(p_channel, v_uid) then
     raise exception 'You cannot post in this channel.';
   end if;
-  if v_kind not in ('text', 'poll', 'checkin', 'image') then
+  if v_kind not in ('text', 'poll', 'checkin', 'image', 'file') then
     raise exception 'Invalid message type.';
   end if;
-  -- Every kind except image needs text; an image may stand on its own.
-  if v_kind <> 'image' and char_length(v_body) = 0 then
+  -- Attachments may stand on their own; everything else needs text.
+  if v_kind not in ('image', 'file') and char_length(v_body) = 0 then
     raise exception 'Empty message.';
   end if;
 
@@ -315,19 +315,26 @@ begin
     end if;
     v_data := jsonb_build_object('options',
       (select jsonb_agg(left(trim(o.value), 80)) from jsonb_array_elements_text(v_options) o));
-  elsif v_kind = 'image' then
+  elsif v_kind in ('image', 'file') then
     if coalesce(p_data ->> 'path', '') = '' then
-      raise exception 'Missing image.';
+      raise exception 'Missing attachment.';
     end if;
     -- Pin the file to this channel's folder so a caller cannot attach
     -- someone else's upload from another channel.
     if split_part(p_data ->> 'path', '/', 1) <> p_channel::text then
-      raise exception 'Image does not belong to this channel.';
+      raise exception 'Attachment does not belong to this channel.';
     end if;
-    v_data := jsonb_build_object(
-      'path', p_data ->> 'path',
-      'w', coalesce((p_data ->> 'w')::int, 0),
-      'h', coalesce((p_data ->> 'h')::int, 0));
+    if v_kind = 'image' then
+      v_data := jsonb_build_object(
+        'path', p_data ->> 'path',
+        'w', coalesce((p_data ->> 'w')::int, 0),
+        'h', coalesce((p_data ->> 'h')::int, 0));
+    else
+      v_data := jsonb_build_object(
+        'path', p_data ->> 'path',
+        'name', left(coalesce(nullif(p_data ->> 'name', ''), 'Document'), 120),
+        'size', coalesce((p_data ->> 'size')::bigint, 0));
+    end if;
   end if;
 
   insert into messages (channel_id, user_id, kind, body, data)
@@ -339,6 +346,7 @@ begin
     when 'poll' then '📊 ' || v_body
     when 'checkin' then '🙋 ' || v_body
     when 'image' then v_name || ': 📷 ' || coalesce(nullif(v_body, ''), 'Photo')
+    when 'file' then v_name || ': 📄 ' || coalesce(v_data ->> 'name', 'Document')
     else v_name || ': ' || v_body end;
 
   update channels
@@ -521,7 +529,7 @@ revoke execute on function public.random_code(text) from public, anon, authentic
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('attachments', 'attachments', false, 10485760,
-        array['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+        array['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'])
 on conflict (id) do nothing;
 
 create policy attachments_read on storage.objects

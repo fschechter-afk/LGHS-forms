@@ -541,6 +541,50 @@ select:focus {
   margin-top: 5px;
 }
 
+.file-wrap {
+  min-width: 200px;
+}
+
+.file-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.file-card:disabled {
+  opacity: 0.6;
+}
+
+.file-icon {
+  font-size: 26px;
+  flex-shrink: 0;
+}
+
+.file-meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.file-name {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-sub {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
 .lightbox {
   position: fixed;
   inset: 0;

@@ -182,7 +182,9 @@ export async function call(action, params = {}) {
       const payload = params.options
         ? { options: params.options }
         : params.path
-          ? { path: params.path, w: params.w, h: params.h }
+          ? params.kind === 'file'
+            ? { path: params.path, name: params.name, size: params.size }
+            : { path: params.path, w: params.w, h: params.h }
           : null
       const data = await rpc('send_message', {
         p_channel: params.channelId,
@@ -270,11 +272,11 @@ const BUCKET = 'attachments'
 
 // Uploads into the channel's folder; the storage policies use that folder to
 // decide who may read the file, and send_message re-checks it.
-export async function uploadImage(channelId, blob) {
-  const name = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}.jpg`
+export async function uploadAttachment(channelId, blob, ext = 'jpg') {
+  const name = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${ext}`
   const path = `${channelId}/${name}`
   const { error } = await supabase().storage.from(BUCKET).upload(path, blob, {
-    contentType: blob.type || 'image/jpeg',
+    contentType: blob.type || 'application/octet-stream',
     upsert: false,
   })
   if (error) throw fail(error)
