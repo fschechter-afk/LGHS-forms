@@ -179,11 +179,16 @@ export async function call(action, params = {}) {
     }
 
     case 'send': {
+      const payload = params.options
+        ? { options: params.options }
+        : params.path
+          ? { path: params.path, w: params.w, h: params.h }
+          : null
       const data = await rpc('send_message', {
         p_channel: params.channelId,
         p_kind: params.kind || 'text',
         p_body: params.text,
-        p_data: params.options ? { options: params.options } : null,
+        p_data: payload,
       })
       return { ok: true, ...data }
     }
@@ -257,6 +262,36 @@ async function adminCall(params) {
     default:
       throw new Error('Unknown admin op')
   }
+}
+
+// ---------------------------------------------------------------- attachments
+
+const BUCKET = 'attachments'
+
+// Uploads into the channel's folder; the storage policies use that folder to
+// decide who may read the file, and send_message re-checks it.
+export async function uploadImage(channelId, blob) {
+  const name = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}.jpg`
+  const path = `${channelId}/${name}`
+  const { error } = await supabase().storage.from(BUCKET).upload(path, blob, {
+    contentType: blob.type || 'image/jpeg',
+    upsert: false,
+  })
+  if (error) throw fail(error)
+  return path
+}
+
+// The bucket is private, so images are shown through short-lived signed URLs.
+// Cache them so re-renders and polling don't re-sign the same file.
+const signed = new Map()
+
+export async function signedImageUrl(path) {
+  const hit = signed.get(path)
+  if (hit && hit.expires > Date.now()) return hit.url
+  const { data, error } = await supabase().storage.from(BUCKET).createSignedUrl(path, 3600)
+  if (error) throw fail(error)
+  signed.set(path, { url: data.signedUrl, expires: Date.now() + 3000 * 1000 })
+  return data.signedUrl
 }
 
 // ---------------------------------------------------------------- realtime
