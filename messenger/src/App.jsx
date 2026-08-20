@@ -14,6 +14,14 @@ function parseHash() {
   if (h === 'new') return { view: 'new' }
   if (h === 'admin') return { view: 'admin' }
   if (h.startsWith('join=')) return { view: 'joinLink', payload: h.slice(5) }
+
+  // Invite links also travel as query parameters. Fragments get stripped by
+  // some in-app browsers and by redirects, which silently drops the code and
+  // leaves people staring at an empty form; a query string survives both.
+  const q = new URLSearchParams(window.location.search)
+  if (q.get('join')) return { view: 'joinLink', payload: q.get('join') }
+  if (q.get('code')) return { view: 'joinLink', code: q.get('code') }
+
   return { view: 'chats' }
 }
 
@@ -40,7 +48,9 @@ export default function App() {
   // got re-shared) should land in their chats, not back on the join form.
   useEffect(() => {
     if (session && route.view === 'joinLink') {
-      window.location.hash = ''
+      // Strip both carriers so a re-tapped invite link doesn't keep
+      // bouncing an existing member back to the join form.
+      window.history.replaceState(null, '', window.location.pathname)
       setRoute({ view: 'chats' })
     }
   }, [session, route.view])
@@ -69,6 +79,7 @@ export default function App() {
     return (
       <Join
         joinPayload={route.view === 'joinLink' ? route.payload : null}
+        joinCode={route.view === 'joinLink' ? route.code : null}
         onJoined={(s) => {
           setSession(s)
           window.location.hash = ''

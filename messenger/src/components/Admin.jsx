@@ -71,12 +71,15 @@ export default function Admin({ session, onSettingsChanged, onBack }) {
   }
 
   const joinLink = (code) => {
-    // When the app is built with its Supabase config baked in, links only
-    // need to carry the code — much shorter and nicer to send.
+    const base = window.location.href.split('#')[0].split('?')[0]
+    // Prefer a plain ?code= link: it is readable, and unlike a #fragment it
+    // survives redirects and in-app browsers that strip the hash (which
+    // otherwise leaves people on an empty join form).
     const baked = SUPABASE_URL === session.url && SUPABASE_ANON_KEY === session.key
-    const payload = btoa(JSON.stringify(baked ? { c: code } : { u: session.url, k: session.key, c: code }))
-    const base = window.location.href.split('#')[0]
-    return base + '#join=' + encodeURIComponent(payload)
+    if (baked) return base + '?code=' + encodeURIComponent(code)
+    // Unconfigured build: the link must carry the project details too.
+    const payload = btoa(JSON.stringify({ u: session.url, k: session.key, c: code }))
+    return base + '?join=' + encodeURIComponent(payload)
   }
 
   const copyLink = async (code) => {
