@@ -116,28 +116,34 @@ export async function call(action, params = {}) {
     case 'getMessages': {
       const me = getSession().user
       const since = params.since ? new Date(params.since).toISOString() : new Date(0).toISOString()
-      const [channelRows, messages, reactionRows, voteRows] = await Promise.all([
+      // Author names come from a plain profiles fetch rather than a PostgREST
+      // embed: embeds need exactly one foreign key between the two tables, and
+      // that inference breaks as soon as the schema grows another link.
+      const [channelRows, messages, reactionRows, voteRows, profiles] = await Promise.all([
         select(supabase().from('channels').select('id, type, name').eq('id', params.channelId)),
         select(
           supabase()
             .from('messages')
-            .select('*, profiles(name, role)')
+            .select('*')
             .eq('channel_id', params.channelId)
             .gt('created_at', since)
             .order('created_at')
         ),
-        select(supabase().from('reactions').select('*, profiles(name)').eq('channel_id', params.channelId)),
-        select(supabase().from('votes').select('*, profiles(name)').eq('channel_id', params.channelId)),
+        select(supabase().from('reactions').select('*').eq('channel_id', params.channelId)),
+        select(supabase().from('votes').select('*').eq('channel_id', params.channelId)),
+        select(supabase().from('profiles').select('id, name, role')),
       ])
       const channel = channelRows[0]
       if (!channel) throw Object.assign(new Error('Channel not found'), { code: 'forbidden' })
+
+      const who = Object.fromEntries(profiles.map((p) => [p.id, p]))
 
       const reactions = {}
       for (const r of reactionRows) {
         const perMsg = (reactions[r.message_id] ||= {})
         const perEmoji = (perMsg[r.emoji] ||= { count: 0, mine: false, names: [] })
         perEmoji.count++
-        perEmoji.names.push(r.profiles?.name || '?')
+        perEmoji.names.push(who[r.user_id]?.name || '?')
         if (r.user_id === me.id) perEmoji.mine = true
       }
 
@@ -145,7 +151,7 @@ export async function call(action, params = {}) {
       for (const v of voteRows) {
         const perMsg = (votes[v.message_id] ||= { counts: {}, mine: null, voters: {} })
         perMsg.counts[v.choice] = (perMsg.counts[v.choice] || 0) + 1
-        ;(perMsg.voters[v.choice] ||= []).push(v.profiles?.name || '?')
+        ;(perMsg.voters[v.choice] ||= []).push(who[v.user_id]?.name || '?')
         if (v.user_id === me.id) perMsg.mine = v.choice
       }
 
@@ -160,8 +166,8 @@ export async function call(action, params = {}) {
         messages: messages.map((m) => ({
           id: m.id,
           userId: m.user_id,
-          userName: m.profiles?.name || '?',
-          userRole: m.profiles?.role || 'student',
+          userName: who[m.user_id]?.name || '?',
+          userRole: who[m.user_id]?.role || 'student',
           kind: m.kind,
           text: m.body,
           data: m.data,
