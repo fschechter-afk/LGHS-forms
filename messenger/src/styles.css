@@ -36,8 +36,16 @@ body {
   display: flex;
   flex-direction: column;
   max-width: 720px;
+  width: 100%;
   margin: 0 auto;
   background: var(--panel);
+  /* .screen is a flex item of .app (column direction), so width is its
+     cross-axis size — flex items refuse to shrink a cross-axis size below
+     their own content's natural width by default. Without this, a long
+     topbar title/subtitle widens .screen past the viewport instead of
+     wrapping/truncating, which pushes the whole page off-center and reads
+     as "zoomed in" on a real phone. */
+  min-width: 0;
 }
 
 button {
@@ -81,6 +89,11 @@ select:focus {
   background: var(--panel-2);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  /* .topbar is itself a flex item of .screen; without this it refuses to
+     shrink below the combined natural width of its children (title +
+     actions) and widens the whole page on narrow phones — the min-width:0
+     already on .topbar-title only fixes its own level, not this one. */
+  min-width: 0;
 }
 
 .topbar-title {
@@ -97,6 +110,15 @@ select:focus {
 }
 
 .topbar-sub {
+  /* Buttons don't shrink to their container by default — without this the
+     restore-code / members link forces its full content width outward and
+     widens the whole page instead of truncating (only showed up on narrow
+     phones, once the subtitle text got long enough to matter). */
+  display: block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: 12px;
   color: var(--text-dim);
 }

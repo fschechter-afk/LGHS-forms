@@ -1,6 +1,6 @@
 {
-  "name": "LGHS Dorm Messenger",
-  "short_name": "LGHS Chat",
+  "name": "LGHS School Messenger",
+  "short_name": "LGHS Messenger",
   "description": "Private, invite-only messaging for LGHS dorm students, parents and staff.",
   "start_url": "./",
   "scope": "./",

@@ -8,7 +8,10 @@
     <link rel="icon" href="./icon-192.png" sizes="192x192" type="image/png" />
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
-    <title>LGHS Dorm Messenger</title>
+    <!-- iOS "Add to Home Screen" uses this over the manifest name/<title>,
+         so it needs its own concise label. -->
+    <meta name="apple-mobile-web-app-title" content="LGHS Messenger" />
+    <title>LGHS School Messenger</title>
   </head>
   <body>
     <div id="root"></div>

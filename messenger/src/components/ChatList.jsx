@@ -83,7 +83,7 @@ export default function ChatList({ session, onSignOut }) {
     <div className="screen">
       <header className="topbar">
         <div className="topbar-title">
-          <h1>LGHS Messenger</h1>
+          <h1>LGHS School Messenger</h1>
           <button className="topbar-sub as-link" onClick={showRestoreCode}>
             {session.user.name} · {session.user.role} · 🔑 restore code
           </button>
