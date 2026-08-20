@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { call, sendOrQueue, onChannelActivity, uploadImage } from '../api.js'
+import { call, sendOrQueue, onChannelActivity, uploadAttachment } from '../api.js'
 import { markRead, getOutbox } from '../storage.js'
-import { compressImage, isImage } from '../images.js'
+import { compressImage, isImage, isPdf, MAX_UPLOAD_BYTES } from '../images.js'
 import PollCard from './PollCard.jsx'
 import ImageBubble from './ImageBubble.jsx'
+import FileBubble from './FileBubble.jsx'
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '🙏', '✅']
 
@@ -120,26 +121,48 @@ export default function ChatView({ channelId, session, quiet, onBack }) {
     }
   }
 
-  // Photos/flyers: compress on the device, upload to the channel's folder,
-  // then post a message pointing at it. Any caption already typed rides along.
-  const sendImage = async (file) => {
+  // Photos are compressed on the device first; PDFs upload as-is. Either way
+  // the file lands in the channel's folder and a message points at it, with
+  // any caption already typed riding along.
+  const sendAttachment = async (file) => {
     if (!file) return
-    if (!isImage(file)) {
-      setError('That file is not an image.')
+    const image = isImage(file)
+    if (!image && !isPdf(file)) {
+      setError('Only photos and PDFs can be attached.')
+      if (fileRef.current) fileRef.current.value = ''
       return
     }
+    if (!image && file.size > MAX_UPLOAD_BYTES) {
+      setError('That PDF is too large (max 10 MB).')
+      if (fileRef.current) fileRef.current.value = ''
+      return
+    }
+
     setUploading(true)
     setError('')
     stickToBottom.current = true
     try {
-      const { blob, width, height } = await compressImage(file)
-      const path = await uploadImage(channelId, blob)
       const caption = text.trim()
-      setText('')
-      await call('send', { channelId, kind: 'image', text: caption, path, w: width, h: height })
+      if (image) {
+        const { blob, width, height } = await compressImage(file)
+        const path = await uploadAttachment(channelId, blob, 'jpg')
+        setText('')
+        await call('send', { channelId, kind: 'image', text: caption, path, w: width, h: height })
+      } else {
+        const path = await uploadAttachment(channelId, file, 'pdf')
+        setText('')
+        await call('send', {
+          channelId,
+          kind: 'file',
+          text: caption,
+          path,
+          name: file.name,
+          size: file.size,
+        })
+      }
       await refresh()
     } catch (err) {
-      setError(err.message || 'Could not send that image.')
+      setError(err.message || 'Could not send that attachment.')
     } finally {
       setUploading(false)
       if (fileRef.current) fileRef.current.value = ''
@@ -243,6 +266,8 @@ export default function ChatView({ channelId, session, quiet, onBack }) {
                     <em>Message deleted</em>
                   ) : m.kind === 'image' ? (
                     <ImageBubble message={m} onOpen={setLightbox} />
+                  ) : m.kind === 'file' ? (
+                    <FileBubble message={m} />
                   ) : m.kind === 'poll' || m.kind === 'checkin' ? (
                     <PollCard message={m} votes={votes[m.id]} onVote={(choice) => vote(m.id, choice)} />
                   ) : (
@@ -333,7 +358,7 @@ export default function ChatView({ channelId, session, quiet, onBack }) {
         </div>
       )}
 
-      {uploading && <div className="offline-bar">📷 Sending photo…</div>}
+      {uploading && <div className="offline-bar">📎 Sending attachment…</div>}
 
       {canPost ? (
         <form className="composer" onSubmit={send}>
@@ -343,18 +368,18 @@ export default function ChatView({ channelId, session, quiet, onBack }) {
           <button
             type="button"
             className="icon-btn"
-            title="Send a photo or flyer"
+            title="Attach a photo, flyer or PDF"
             disabled={uploading}
             onClick={() => fileRef.current?.click()}
           >
-            📷
+            📎
           </button>
           <input
             ref={fileRef}
             type="file"
-            accept="image/*"
+            accept="image/*,application/pdf,.pdf"
             hidden
-            onChange={(e) => sendImage(e.target.files?.[0])}
+            onChange={(e) => sendAttachment(e.target.files?.[0])}
           />
           <input
             placeholder={quiet ? 'Quiet hours — keep it low-key…' : 'Message'}
