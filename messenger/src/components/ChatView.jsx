@@ -2,9 +2,21 @@ import React, { useEffect, useRef, useState } from 'react'
 import { call, sendOrQueue, onChannelActivity, uploadAttachment } from '../api.js'
 import { markRead, getOutbox } from '../storage.js'
 import { compressImage, isImage, isPdf, MAX_UPLOAD_BYTES } from '../images.js'
+import { personColor } from '../people.js'
 import PollCard from './PollCard.jsx'
 import ImageBubble from './ImageBubble.jsx'
 import FileBubble from './FileBubble.jsx'
+
+// One-line summary of a message, for the quote above a reply.
+function snippet(m) {
+  if (!m) return ''
+  if (m.kind === 'image') return '📷 ' + (m.text || 'Photo')
+  if (m.kind === 'file') return '📄 ' + (m.data?.name || 'Document')
+  if (m.kind === 'poll') return '📊 ' + m.text
+  if (m.kind === 'checkin') return '🙋 ' + m.text
+  if (m.kind === 'deleted') return 'Message deleted'
+  return m.text
+}
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '🙏', '✅']
 
@@ -36,6 +48,8 @@ export default function ChatView({ channelId, session, quiet, onBack }) {
   const [queuedCount, setQueuedCount] = useState(getOutbox().length)
   const [uploading, setUploading] = useState(false)
   const [lightbox, setLightbox] = useState(null)
+  const [replyTo, setReplyTo] = useState(null)
+  const [flash, setFlash] = useState(null)
   const fileRef = useRef(null)
 
   const sinceRef = useRef(0)
@@ -110,8 +124,10 @@ export default function ChatView({ channelId, session, quiet, onBack }) {
       pending: true,
     }
     setMessages((prev) => [...prev, temp])
+    const quoted = replyTo?.id || null
+    setReplyTo(null)
     try {
-      const res = await sendOrQueue(channelId, { text: body })
+      const res = await sendOrQueue(channelId, { text: body, replyTo: quoted })
       if (res.queued) setQueuedCount(getOutbox().length)
       await refresh()
       setMessages((prev) => prev.filter((m) => m.id !== temp.id))
@@ -215,6 +231,17 @@ export default function ChatView({ channelId, session, quiet, onBack }) {
 
   const canModerate = session.user.role === 'admin' || session.user.role === 'staff'
   const isStaff = canModerate
+  const byId = Object.fromEntries(messages.map((m) => [m.id, m]))
+
+  // Tapping a quote scrolls to the message it refers to and flashes it.
+  const jumpTo = (id) => {
+    const el = document.getElementById('msg-' + id)
+    if (!el) return
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    setFlash(id)
+    setTimeout(() => setFlash(null), 1200)
+  }
+
   let lastDay = ''
 
   return (
@@ -253,14 +280,33 @@ export default function ChatView({ channelId, session, quiet, onBack }) {
               {divider}
               <div className={'bubble-row' + (mine ? ' mine' : '')}>
                 <div
-                  className={'bubble' + (m.pending ? ' pending' : '') + (m.kind === 'deleted' ? ' deleted' : '')}
+                  id={'msg-' + m.id}
+                  className={
+                    'bubble' +
+                    (m.pending ? ' pending' : '') +
+                    (m.kind === 'deleted' ? ' deleted' : '') +
+                    (flash === m.id ? ' flash' : '')
+                  }
                   onDoubleClick={() => m.kind !== 'deleted' && !m.pending && react(m.id, '👍')}
                 >
-                  {!mine && m.kind !== 'deleted' && (
-                    <div className={'bubble-author role-' + m.userRole}>
+                  {/* DMs have only one other person, so the name is noise there. */}
+                  {!mine && m.kind !== 'deleted' && channel?.type !== 'dm' && (
+                    <div className="bubble-author" style={{ color: personColor(m.userId) }}>
                       {m.userName}
                       {m.userRole !== 'student' && <span className="role-tag">{m.userRole}</span>}
                     </div>
+                  )}
+                  {m.replyTo && byId[m.replyTo] && (
+                    <button
+                      className="reply-quote"
+                      style={{ borderLeftColor: personColor(byId[m.replyTo].userId) }}
+                      onClick={() => jumpTo(m.replyTo)}
+                    >
+                      <span className="reply-quote-who" style={{ color: personColor(byId[m.replyTo].userId) }}>
+                        {byId[m.replyTo].userId === session.user.id ? 'You' : byId[m.replyTo].userName}
+                      </span>
+                      <span className="reply-quote-text">{snippet(byId[m.replyTo])}</span>
+                    </button>
                   )}
                   {m.kind === 'deleted' ? (
                     <em>Message deleted</em>
@@ -277,6 +323,9 @@ export default function ChatView({ channelId, session, quiet, onBack }) {
                     {m.pending ? '🕓' : fmtTime(m.createdAt)}
                     {m.kind !== 'deleted' && !m.pending && (
                       <>
+                        <button className="meta-btn" title="Reply" onClick={() => setReplyTo(m)}>
+                          ↩
+                        </button>
                         <button className="meta-btn" title="React" onClick={() => setPickerFor(pickerFor === m.id ? null : m.id)}>
                           🙂+
                         </button>
@@ -359,6 +408,20 @@ export default function ChatView({ channelId, session, quiet, onBack }) {
       )}
 
       {uploading && <div className="offline-bar">📎 Sending attachment…</div>}
+
+      {canPost && replyTo && (
+        <div className="reply-bar">
+          <div className="reply-bar-quote" style={{ borderLeftColor: personColor(replyTo.userId) }}>
+            <span className="reply-quote-who" style={{ color: personColor(replyTo.userId) }}>
+              Replying to {replyTo.userId === session.user.id ? 'yourself' : replyTo.userName}
+            </span>
+            <span className="reply-quote-text">{snippet(replyTo)}</span>
+          </div>
+          <button className="icon-btn" title="Cancel reply" onClick={() => setReplyTo(null)}>
+            ✕
+          </button>
+        </div>
+      )}
 
       {canPost ? (
         <form className="composer" onSubmit={send}>

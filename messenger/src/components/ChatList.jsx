@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { call, onChannelListActivity } from '../api.js'
+import { call, onChannelListActivity, myRecoveryCode } from '../api.js'
 import { getLastRead } from '../storage.js'
 
 const CHANNEL_ICONS = { announcement: '📣', group: '👥', dm: '💬' }
@@ -48,14 +48,34 @@ export default function ChatList({ session, onSignOut }) {
   const lastRead = getLastRead()
   const isAdmin = session.user.role === 'admin'
 
+  // Anonymous accounts live in one browser, so the restore code is the only
+  // way back after a sign-out, a wipe, or a new phone. Make it easy to save.
+  const showRestoreCode = async () => {
+    try {
+      const code = session.user.recoveryCode || (await myRecoveryCode())
+      const msg =
+        'Your restore code:\n\n' +
+        code +
+        '\n\nSave this somewhere safe. It is the only way to get this account — and its chats — back on a new phone or after signing out. Do not share it.'
+      try {
+        await navigator.clipboard.writeText(code)
+        alert(msg + '\n\n(Copied to your clipboard.)')
+      } catch {
+        prompt(msg, code)
+      }
+    } catch (err) {
+      alert('Could not load your restore code: ' + err.message)
+    }
+  }
+
   return (
     <div className="screen">
       <header className="topbar">
         <div className="topbar-title">
           <h1>LGHS Messenger</h1>
-          <span className="topbar-sub">
-            {session.user.name} · {session.user.role}
-          </span>
+          <button className="topbar-sub as-link" onClick={showRestoreCode}>
+            {session.user.name} · {session.user.role} · 🔑 restore code
+          </button>
         </div>
         <div className="topbar-actions">
           {isAdmin && (

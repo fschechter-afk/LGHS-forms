@@ -24,6 +24,10 @@ create table public.profiles (
   name       text not null check (char_length(name) between 1 and 40),
   role       text not null default 'student' check (role in ('student', 'parent', 'staff', 'admin')),
   status     text not null default 'active' check (status in ('active', 'disabled')),
+  -- Personal restore code: moves this account to a new device. Hidden from
+  -- other members by the column grants further down.
+  recovery_code text not null unique
+    default ('LGHS-' || upper(substring(replace(gen_random_uuid()::text, '-', ''), 1, 6))),
   created_at timestamptz not null default now()
 );
 
@@ -62,6 +66,7 @@ create table public.messages (
   kind       text not null default 'text' check (kind in ('text', 'poll', 'checkin', 'image', 'file', 'deleted')),
   body       text not null default '',
   data       jsonb,
+  reply_to   uuid references public.messages (id) on delete set null,
   created_at timestamptz not null default now()
 );
 create index messages_channel_created on public.messages (channel_id, created_at);
@@ -183,7 +188,8 @@ begin
   select * into v_prof from profiles where id = v_uid;
   if found then
     return jsonb_build_object(
-      'user', jsonb_build_object('id', v_prof.id, 'name', v_prof.name, 'role', v_prof.role),
+      'user', jsonb_build_object('id', v_prof.id, 'name', v_prof.name, 'role', v_prof.role,
+                                 'recoveryCode', v_prof.recovery_code),
       'settings', (select coalesce(jsonb_object_agg(key, value), '{}'::jsonb) from settings));
   end if;
 
@@ -213,7 +219,8 @@ begin
   end if;
 
   return jsonb_build_object(
-    'user', jsonb_build_object('id', v_prof.id, 'name', v_prof.name, 'role', v_prof.role),
+    'user', jsonb_build_object('id', v_prof.id, 'name', v_prof.name, 'role', v_prof.role,
+                               'recoveryCode', v_prof.recovery_code),
     'settings', (select coalesce(jsonb_object_agg(key, value), '{}'::jsonb) from settings));
 end $$;
 
@@ -291,6 +298,7 @@ declare
   v_name    text;
   v_preview text;
   v_options jsonb;
+  v_reply   uuid := nullif(p_data ->> 'replyTo', '')::uuid;
 begin
   if not can_post(p_channel, v_uid) then
     raise exception 'You cannot post in this channel.';
@@ -301,6 +309,12 @@ begin
   -- Attachments may stand on their own; everything else needs text.
   if v_kind not in ('image', 'file') and char_length(v_body) = 0 then
     raise exception 'Empty message.';
+  end if;
+
+  -- You may only quote a message from the same channel.
+  if v_reply is not null
+     and not exists (select 1 from messages r where r.id = v_reply and r.channel_id = p_channel) then
+    v_reply := null;
   end if;
 
   if v_kind = 'checkin' then
@@ -337,8 +351,8 @@ begin
     end if;
   end if;
 
-  insert into messages (channel_id, user_id, kind, body, data)
-  values (p_channel, v_uid, v_kind, v_body, v_data)
+  insert into messages (channel_id, user_id, kind, body, data, reply_to)
+  values (p_channel, v_uid, v_kind, v_body, v_data, v_reply)
   returning * into v_msg;
 
   select name into v_name from profiles where id = v_uid;
@@ -522,6 +536,57 @@ revoke execute on function public.can_post(uuid, uuid) from public, anon;
 
 -- Only used inside security-definer functions; no client role needs it.
 revoke execute on function public.random_code(text) from public, anon, authenticated;
+
+-- ---------------------------------------------------------------- rpc: account recovery
+
+-- Moves an existing account onto this device. The profile's id becomes the
+-- caller's auth id and every reference cascades with it, so chats,
+-- memberships, messages and role all come along.
+create or replace function public.claim_recovery(p_code text)
+returns jsonb language plpgsql volatile security definer set search_path = public as $$
+declare
+  v_uid  uuid := auth.uid();
+  v_prof profiles%rowtype;
+begin
+  if v_uid is null then
+    raise exception 'Not signed in.';
+  end if;
+  if exists (select 1 from profiles where id = v_uid) then
+    raise exception 'This device is already signed in to an account.';
+  end if;
+
+  select * into v_prof from profiles
+   where upper(recovery_code) = upper(trim(p_code)) for update;
+  if not found then
+    raise exception 'That restore code is not valid.';
+  end if;
+  if v_prof.status <> 'active' then
+    raise exception 'That account has been disabled.';
+  end if;
+
+  update profiles set id = v_uid where id = v_prof.id;
+  select * into v_prof from profiles where id = v_uid;
+
+  return jsonb_build_object(
+    'user', jsonb_build_object('id', v_prof.id, 'name', v_prof.name, 'role', v_prof.role,
+                               'recoveryCode', v_prof.recovery_code),
+    'settings', (select coalesce(jsonb_object_agg(key, value), '{}'::jsonb) from settings));
+end $$;
+
+-- Members read their own restore code through this, never each other's.
+create or replace function public.my_recovery_code()
+returns text language sql stable security definer set search_path = public as $$
+  select recovery_code from profiles where id = auth.uid();
+$$;
+
+revoke execute on function public.claim_recovery(text) from public, anon;
+revoke execute on function public.my_recovery_code() from public, anon;
+
+-- profiles is readable by every member, so the restore code must not be
+-- selectable as an ordinary column — otherwise anyone could read someone
+-- else's and take over their account.
+revoke select on public.profiles from authenticated, anon;
+grant select (id, name, role, status, created_at) on public.profiles to authenticated;
 
 -- ---------------------------------------------------------------- attachments
 -- Photos/flyers live in a PRIVATE bucket, one folder per channel, readable
