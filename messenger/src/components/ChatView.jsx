@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { call, sendOrQueue, onChannelActivity } from '../api.js'
+import { call, sendOrQueue, onChannelActivity, uploadImage } from '../api.js'
 import { markRead, getOutbox } from '../storage.js'
+import { compressImage, isImage } from '../images.js'
 import PollCard from './PollCard.jsx'
+import ImageBubble from './ImageBubble.jsx'
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '🙏', '✅']
 
@@ -31,6 +33,9 @@ export default function ChatView({ channelId, session, quiet, onBack }) {
   const [pollQuestion, setPollQuestion] = useState('')
   const [pollOptions, setPollOptions] = useState(['', ''])
   const [queuedCount, setQueuedCount] = useState(getOutbox().length)
+  const [uploading, setUploading] = useState(false)
+  const [lightbox, setLightbox] = useState(null)
+  const fileRef = useRef(null)
 
   const sinceRef = useRef(0)
   const scrollRef = useRef(null)
@@ -112,6 +117,32 @@ export default function ChatView({ channelId, session, quiet, onBack }) {
     } catch (err) {
       setMessages((prev) => prev.filter((m) => m.id !== temp.id))
       setError(err.message)
+    }
+  }
+
+  // Photos/flyers: compress on the device, upload to the channel's folder,
+  // then post a message pointing at it. Any caption already typed rides along.
+  const sendImage = async (file) => {
+    if (!file) return
+    if (!isImage(file)) {
+      setError('That file is not an image.')
+      return
+    }
+    setUploading(true)
+    setError('')
+    stickToBottom.current = true
+    try {
+      const { blob, width, height } = await compressImage(file)
+      const path = await uploadImage(channelId, blob)
+      const caption = text.trim()
+      setText('')
+      await call('send', { channelId, kind: 'image', text: caption, path, w: width, h: height })
+      await refresh()
+    } catch (err) {
+      setError(err.message || 'Could not send that image.')
+    } finally {
+      setUploading(false)
+      if (fileRef.current) fileRef.current.value = ''
     }
   }
 
@@ -210,6 +241,8 @@ export default function ChatView({ channelId, session, quiet, onBack }) {
                   )}
                   {m.kind === 'deleted' ? (
                     <em>Message deleted</em>
+                  ) : m.kind === 'image' ? (
+                    <ImageBubble message={m} onOpen={setLightbox} />
                   ) : m.kind === 'poll' || m.kind === 'checkin' ? (
                     <PollCard message={m} votes={votes[m.id]} onVote={(choice) => vote(m.id, choice)} />
                   ) : (
@@ -300,11 +333,29 @@ export default function ChatView({ channelId, session, quiet, onBack }) {
         </div>
       )}
 
+      {uploading && <div className="offline-bar">📷 Sending photo…</div>}
+
       {canPost ? (
         <form className="composer" onSubmit={send}>
           <button type="button" className="icon-btn" title="Create a poll" onClick={() => setShowPoll((v) => !v)}>
             📊
           </button>
+          <button
+            type="button"
+            className="icon-btn"
+            title="Send a photo or flyer"
+            disabled={uploading}
+            onClick={() => fileRef.current?.click()}
+          >
+            📷
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={(e) => sendImage(e.target.files?.[0])}
+          />
           <input
             placeholder={quiet ? 'Quiet hours — keep it low-key…' : 'Message'}
             value={text}
@@ -317,6 +368,13 @@ export default function ChatView({ channelId, session, quiet, onBack }) {
         </form>
       ) : (
         <div className="composer readonly">Only staff and admins can post here. You can still react and vote.</div>
+      )}
+
+      {lightbox && (
+        <div className="lightbox" onClick={() => setLightbox(null)}>
+          <img src={lightbox} alt="" />
+          <button className="lightbox-close" aria-label="Close">✕</button>
+        </div>
       )}
     </div>
   )
