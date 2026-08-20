@@ -45,17 +45,24 @@ export default function App() {
     }
   }, [session, route.view])
 
-  const signOut = async () => {
+  const signOut = () => {
     // Accounts are anonymous (no password), so signing out abandons this
     // device's account for good — a new invite code is needed to rejoin.
+    //
+    // Clear locally FIRST. Awaiting the server call left the button dead
+    // whenever that request hung (offline, paused project, flaky wifi):
+    // a hang neither resolves nor rejects, so nothing after it ever ran.
+    let client = null
     try {
-      await supabase().auth.signOut()
+      client = supabase()
     } catch {
-      // Already signed out or offline; clear local state regardless.
+      // No client yet — local state is still ours to clear.
     }
     clearSession()
     setSession(null)
     window.location.hash = ''
+    // Best effort, in the background; the user is already signed out.
+    client?.auth.signOut().catch(() => {})
   }
 
   if (!session) {
