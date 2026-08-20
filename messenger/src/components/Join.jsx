@@ -14,8 +14,11 @@ function decodeJoinPayload(payload) {
   }
 }
 
-export default function Join({ joinPayload, onJoined }) {
-  const prefill = useMemo(() => (joinPayload ? decodeJoinPayload(joinPayload) : {}), [joinPayload])
+export default function Join({ joinPayload, joinCode, onJoined }) {
+  const prefill = useMemo(() => {
+    if (joinCode) return { c: joinCode.toUpperCase() } // plain ?code=STA-XXXX
+    return joinPayload ? decodeJoinPayload(joinPayload) : {}
+  }, [joinPayload, joinCode])
   const [url, setUrl] = useState(prefill.u || SUPABASE_URL || '')
   const [key, setKey] = useState(prefill.k || SUPABASE_ANON_KEY || '')
   const [code, setCode] = useState(prefill.c || '')
