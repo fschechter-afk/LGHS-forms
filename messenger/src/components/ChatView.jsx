@@ -252,9 +252,16 @@ export default function ChatView({ channelId, session, quiet, onBack }) {
         </button>
         <div className="topbar-title">
           <h1>{channel ? channel.name : '…'}</h1>
-          {channel?.type === 'announcement' && (
+          {channel?.type === 'announcement' ? (
             <span className="topbar-sub">Announcements · {canPost ? 'you can post' : 'read-only'}</span>
-          )}
+          ) : channel?.type === 'group' ? (
+            <button
+              className="topbar-sub as-link"
+              onClick={() => (window.location.hash = 'members/' + channelId)}
+            >
+              👥 Members · add or remove
+            </button>
+          ) : null}
         </div>
       </header>
 

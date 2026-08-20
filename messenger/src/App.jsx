@@ -4,6 +4,7 @@ import ChatList from './components/ChatList.jsx'
 import ChatView from './components/ChatView.jsx'
 import NewChat from './components/NewChat.jsx'
 import Admin from './components/Admin.jsx'
+import Members from './components/Members.jsx'
 import { getSession, clearSession } from './storage.js'
 import { flushOutbox, supabase } from './api.js'
 import { inQuietHours } from './quietHours.js'
@@ -11,6 +12,7 @@ import { inQuietHours } from './quietHours.js'
 function parseHash() {
   const h = window.location.hash.slice(1)
   if (h.startsWith('chat/')) return { view: 'chat', channelId: h.slice(5) }
+  if (h.startsWith('members/')) return { view: 'members', channelId: h.slice(8) }
   if (h === 'new') return { view: 'new' }
   if (h === 'admin') return { view: 'admin' }
   if (h.startsWith('join=')) return { view: 'joinLink', payload: h.slice(5) }
@@ -104,6 +106,13 @@ export default function App() {
           session={session}
           quiet={quiet}
           onBack={() => (window.location.hash = '')}
+        />
+      ) : route.view === 'members' ? (
+        <Members
+          key={route.channelId}
+          channelId={route.channelId}
+          session={session}
+          onBack={() => (window.location.hash = 'chat/' + route.channelId)}
         />
       ) : route.view === 'new' ? (
         <NewChat session={session} onBack={() => (window.location.hash = '')} />
