@@ -189,9 +189,13 @@ select:focus {
 }
 
 .join-logo {
-  font-size: 44px;
-  text-align: center;
+  display: block;
+  width: 132px;
+  height: 132px;
+  margin: 0 auto 4px;
+  object-fit: contain;
 }
+
 
 .join-card h1 {
   font-size: 22px;
