@@ -26,8 +26,8 @@ create table public.profiles (
   status     text not null default 'active' check (status in ('active', 'disabled')),
   -- Personal restore code: moves this account to a new device. Hidden from
   -- other members by the column grants further down.
-  recovery_code text not null unique
-    default ('LGHS-' || upper(substring(replace(gen_random_uuid()::text, '-', ''), 1, 6))),
+  -- Set explicitly by redeem_invite; random_code is defined further down.
+  recovery_code text not null unique,
   created_at timestamptz not null default now()
 );
 
@@ -126,10 +126,23 @@ returns boolean language sql stable security definer set search_path = public as
   );
 $$;
 
-create or replace function public.random_code(prefix text)
-returns text language sql volatile set search_path = public as $$
-  select prefix || '-' || upper(substring(replace(gen_random_uuid()::text, '-', ''), 1, 6));
-$$;
+-- Cryptographically random draws over a 32-symbol alphabet. Codes gate real
+-- access and anonymous sign-in is open, so they must not be guessable.
+-- (pgcrypto lives in the extensions schema on Supabase.)
+create or replace function public.random_code(prefix text, p_len int default 10)
+returns text language plpgsql volatile set search_path = public, extensions as $$
+declare
+  -- No I/O/0/1: these get misread when a code is copied off a screen.
+  alphabet constant text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  v_bytes bytea := extensions.gen_random_bytes(p_len);
+  v_out   text := '';
+begin
+  for i in 1 .. p_len loop
+    -- 32 symbols is exactly 5 bits, so masking a uniform byte stays uniform.
+    v_out := v_out || substr(alphabet, (get_byte(v_bytes, i - 1) & 31) + 1, 1);
+  end loop;
+  return prefix || '-' || v_out;
+end $$;
 
 -- ---------------------------------------------------------------- row-level security
 -- Reads go through these policies; ALL writes go through the RPC functions
@@ -205,8 +218,8 @@ begin
     raise exception 'A name is required.';
   end if;
 
-  insert into profiles (id, name, role)
-  values (v_uid, left(trim(p_name), 40), v_code.role)
+  insert into profiles (id, name, role, recovery_code)
+  values (v_uid, left(trim(p_name), 40), v_code.role, public.random_code('LGHS', 16))
   returning * into v_prof;
 
   update invite_codes
@@ -446,7 +459,7 @@ begin
     raise exception 'Admin codes must stay single-use.';
   end if;
   for i in 1 .. v_n loop
-    v_code := random_code(upper(left(p_role, 3)));
+    v_code := random_code(upper(left(p_role, 3)), 10);
     insert into invite_codes (code, role, note, created_by, max_uses)
     values (v_code, p_role, coalesce(p_note, ''), auth.uid(), case when p_shared then 0 else 1 end);
     return next v_code;
@@ -534,9 +547,6 @@ revoke execute on function public.my_role() from public, anon;
 revoke execute on function public.is_member(uuid, uuid) from public, anon;
 revoke execute on function public.can_post(uuid, uuid) from public, anon;
 
--- Only used inside security-definer functions; no client role needs it.
-revoke execute on function public.random_code(text) from public, anon, authenticated;
-
 -- ---------------------------------------------------------------- rpc: account recovery
 
 -- Moves an existing account onto this device. The profile's id becomes the
@@ -573,6 +583,21 @@ begin
     'settings', (select coalesce(jsonb_object_agg(key, value), '{}'::jsonb) from settings));
 end $$;
 
+-- Lets someone retire a restore code they think has been seen.
+create or replace function public.regenerate_my_recovery_code()
+returns text language plpgsql volatile security definer set search_path = public as $$
+declare
+  v_new text;
+begin
+  if not is_active(auth.uid()) then
+    raise exception 'Not signed in.';
+  end if;
+  update profiles set recovery_code = public.random_code('LGHS', 16)
+   where id = auth.uid()
+   returning recovery_code into v_new;
+  return v_new;
+end $$;
+
 -- Members read their own restore code through this, never each other's.
 create or replace function public.my_recovery_code()
 returns text language sql stable security definer set search_path = public as $$
@@ -581,6 +606,8 @@ $$;
 
 revoke execute on function public.claim_recovery(text) from public, anon;
 revoke execute on function public.my_recovery_code() from public, anon;
+revoke execute on function public.regenerate_my_recovery_code() from public, anon;
+revoke execute on function public.random_code(text, int) from public, anon, authenticated;
 
 -- profiles is readable by every member, so the restore code must not be
 -- selectable as an ordinary column — otherwise anyone could read someone
