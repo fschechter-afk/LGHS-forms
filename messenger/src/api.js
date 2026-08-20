@@ -64,6 +64,24 @@ export async function join(url, key, code, name) {
   return { url, key, user: data.user, settings: data.settings || {} }
 }
 
+// Moves an existing account onto this device using its personal restore
+// code — the account's chats, messages and role come with it.
+export async function restoreAccount(url, key, code) {
+  const sb = supabase(url, key)
+  const { data: existing } = await sb.auth.getSession()
+  if (!existing?.session) {
+    const { error } = await sb.auth.signInAnonymously()
+    if (error) throw fail(error)
+  }
+  const data = await rpc('claim_recovery', { p_code: code })
+  return { url, key, user: data.user, settings: data.settings || {} }
+}
+
+// Your own restore code. Never readable for anyone else.
+export async function myRecoveryCode() {
+  return rpc('my_recovery_code', {})
+}
+
 // ---------------------------------------------------------------- actions
 
 export async function call(action, params = {}) {
@@ -171,6 +189,7 @@ export async function call(action, params = {}) {
           kind: m.kind,
           text: m.body,
           data: m.data,
+          replyTo: m.reply_to || null,
           createdAt: ts(m.created_at),
         })),
         reactions,
@@ -185,7 +204,8 @@ export async function call(action, params = {}) {
           ? params.kind === 'file'
             ? { path: params.path, name: params.name, size: params.size }
             : { path: params.path, w: params.w, h: params.h }
-          : null
+          : {}
+      if (params.replyTo) payload.replyTo = params.replyTo
       const data = await rpc('send_message', {
         p_channel: params.channelId,
         p_kind: params.kind || 'text',

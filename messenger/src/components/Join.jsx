@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { join } from '../api.js'
+import { join, restoreAccount } from '../api.js'
 import { setSession } from '../storage.js'
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config.js'
 
@@ -22,6 +22,8 @@ export default function Join({ joinPayload, onJoined }) {
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [restoring, setRestoring] = useState(false)
+  const [restoreCode, setRestoreCode] = useState('')
 
   const manual = !(prefill.u || SUPABASE_URL) || !(prefill.k || SUPABASE_ANON_KEY)
 
@@ -35,11 +37,16 @@ export default function Join({ joinPayload, onJoined }) {
     }
     setBusy(true)
     try {
-      const session = await join(projectUrl, key.trim(), code.trim(), name.trim())
+      const session = restoring
+        ? await restoreAccount(projectUrl, key.trim(), restoreCode.trim())
+        : await join(projectUrl, key.trim(), code.trim(), name.trim())
       setSession(session)
       onJoined(session)
     } catch (err) {
-      setError(err.message || 'Could not join. Check the code and try again.')
+      setError(
+        err.message ||
+          (restoring ? 'Could not restore that account.' : 'Could not join. Check the code and try again.')
+      )
     } finally {
       setBusy(false)
     }
@@ -80,32 +87,59 @@ export default function Join({ joinPayload, onJoined }) {
               </label>
             </>
           )}
-          <label>
-            Invite code
-            <input
-              type="text"
-              placeholder="STU-ABC123"
-              value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              autoCapitalize="characters"
-              autoComplete="off"
-              required
-            />
-          </label>
-          <label>
-            Your name
-            <input
-              type="text"
-              placeholder="First Last"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              maxLength={40}
-              required
-            />
-          </label>
+          {restoring ? (
+            <label>
+              Your restore code
+              <input
+                type="text"
+                placeholder="LGHS-ABC123"
+                value={restoreCode}
+                onChange={(e) => setRestoreCode(e.target.value.toUpperCase())}
+                autoCapitalize="characters"
+                autoComplete="off"
+                required
+              />
+            </label>
+          ) : (
+            <>
+              <label>
+                Invite code
+                <input
+                  type="text"
+                  placeholder="STU-ABC123"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.toUpperCase())}
+                  autoCapitalize="characters"
+                  autoComplete="off"
+                  required
+                />
+              </label>
+              <label>
+                Your name
+                <input
+                  type="text"
+                  placeholder="First Last"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  maxLength={40}
+                  required
+                />
+              </label>
+            </>
+          )}
           {error && <div className="error">{error}</div>}
           <button type="submit" className="btn-primary" disabled={busy}>
-            {busy ? 'Joining…' : 'Join'}
+            {busy ? (restoring ? 'Restoring…' : 'Joining…') : restoring ? 'Restore my account' : 'Join'}
+          </button>
+          <button
+            type="button"
+            className="link-btn"
+            onClick={() => {
+              setRestoring((v) => !v)
+              setError('')
+            }}
+          >
+            {restoring ? '← Back to joining with an invite code' : 'Already had an account? Restore it'}
           </button>
         </form>
       </div>

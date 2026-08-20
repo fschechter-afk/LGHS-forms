@@ -430,8 +430,80 @@ select:focus {
 .bubble-author {
   font-size: 12.5px;
   font-weight: 600;
-  color: #53bdeb;
+  color: #53bdeb; /* overridden per person inline */
   margin-bottom: 2px;
+}
+
+.bubble.flash {
+  animation: flash-bubble 1.2s ease-out;
+}
+
+@keyframes flash-bubble {
+  0%, 60% { box-shadow: 0 0 0 2px var(--accent-bright); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* ---------- replies ---------- */
+
+.reply-quote {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border-left: 3px solid var(--accent-bright);
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 6px;
+  padding: 5px 8px;
+  margin-bottom: 5px;
+}
+
+.reply-quote-who {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.reply-quote-text {
+  display: block;
+  font-size: 12.5px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reply-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 0;
+  background: var(--panel-2);
+}
+
+.reply-bar-quote {
+  flex: 1;
+  min-width: 0;
+  border-left: 3px solid var(--accent-bright);
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 6px;
+  padding: 5px 8px;
+}
+
+.as-link {
+  background: none;
+  padding: 0;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.link-btn {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--text-dim);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .bubble-author.role-staff {
