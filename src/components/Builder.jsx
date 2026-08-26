@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { getForm, saveForm, newQuestion, QUESTION_TYPES, getSettings, encodeForm } from '../storage.js'
 import { publishToHub, unpublishFromHub } from '../sheets.js'
+import AutoGrowInput from './AutoGrowInput.jsx'
 
 export default function Builder({ formId }) {
   const [form, setForm] = useState(() => getForm(formId))
@@ -116,8 +117,8 @@ export default function Builder({ formId }) {
         <a className="btn ghost" href="#/">← Forms</a>
         <div className="topbar-actions">
           <span className={`save-tick ${savedTick ? 'show' : ''}`}>Saved ✓</span>
-          <a className="btn" href={`#/preview/${form.id}`}>Preview</a>
-          <a className="btn" href={`#/responses/${form.id}`}>Responses</a>
+          <a className="btn" href={`#/preview/${form.id}`} onClick={() => saveForm(form)}>Preview</a>
+          <a className="btn" href={`#/responses/${form.id}`} onClick={() => saveForm(form)}>Responses</a>
           <button className="btn" disabled={hubBusy} onClick={publish}>
             {hubBusy ? '…' : form.published ? 'Update hub' : 'Publish to hub'}
           </button>
@@ -129,11 +130,11 @@ export default function Builder({ formId }) {
       </header>
 
       <div className="card form-header-card">
-        <input
+        <AutoGrowInput
           className="title-input"
           value={form.title}
           placeholder="Form title"
-          onChange={(e) => update({ title: e.target.value })}
+          onChange={(title) => update({ title })}
         />
         <textarea
           className="desc-input"
@@ -182,19 +183,20 @@ function QuestionEditor({ q, index, total, onChange, onType, onRemove, onDuplica
 
   return (
     <div className="card question-card">
-      <div className="question-row">
-        <input
-          className="question-label"
-          value={q.label}
-          placeholder={`Question ${index + 1}`}
-          onChange={(e) => onChange({ label: e.target.value })}
-        />
-        <select value={q.type} onChange={(e) => onType(e.target.value)}>
+      <div className="question-head">
+        <span className="question-number">Question {index + 1}</span>
+        <select className="type-select" value={q.type} onChange={(e) => onType(e.target.value)}>
           {QUESTION_TYPES.map((t) => (
             <option key={t.value} value={t.value}>{t.label}</option>
           ))}
         </select>
       </div>
+      <AutoGrowInput
+        className="question-label"
+        value={q.label}
+        placeholder="Type your question here"
+        onChange={(label) => onChange({ label })}
+      />
 
       {hasOptions && (
         <div className="options">
@@ -203,7 +205,11 @@ function QuestionEditor({ q, index, total, onChange, onType, onRemove, onDuplica
               <span className="option-glyph">
                 {q.type === 'choice' ? '◯' : q.type === 'checkbox' ? '☐' : `${i + 1}.`}
               </span>
-              <input value={opt} onChange={(e) => setOption(i, e.target.value)} />
+              <AutoGrowInput
+                className="option-input"
+                value={opt}
+                onChange={(value) => setOption(i, value)}
+              />
               <button
                 className="icon-btn"
                 title="Remove option"
