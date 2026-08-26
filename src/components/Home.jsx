@@ -1,10 +1,22 @@
 import React, { useState } from 'react'
-import { listForms, newForm, saveForm, deleteForm, getSettings, encodeForm } from '../storage.js'
+import { listForms, newForm, saveForm, deleteForm, getSettings, encodeForm, hubLink } from '../storage.js'
 
 export default function Home() {
   const [forms, setForms] = useState(listForms())
   const [copied, setCopied] = useState(null)
+  const [hubCopied, setHubCopied] = useState(false)
   const settings = getSettings()
+  const studentLink = settings.sheetsEndpoint ? hubLink(settings.sheetsEndpoint) : ''
+
+  async function copyStudentLink() {
+    try {
+      await navigator.clipboard.writeText(studentLink)
+    } catch {
+      prompt('Copy this link:', studentLink)
+    }
+    setHubCopied(true)
+    setTimeout(() => setHubCopied(false), 1500)
+  }
 
   function create() {
     const form = saveForm(newForm())
@@ -45,6 +57,26 @@ export default function Home() {
           Google Sheets isn't connected yet — responses will only be saved on this device.
           Tap to set up the automatic Sheets link.
         </a>
+      )}
+
+      {studentLink && (
+        <div className="card student-link-card">
+          <div className="card-title">📲 Student link — send this to the girls</div>
+          <p className="muted small">
+            One permanent link for everyone. Every form you publish to the hub shows
+            up here, so you never have to send a new link. They can add it to their
+            home screen and use it like an app.
+          </p>
+          <div className="student-link-url">{studentLink}</div>
+          <div className="settings-actions">
+            <button className="btn primary" onClick={copyStudentLink}>
+              {hubCopied ? '✓ Copied' : 'Copy student link'}
+            </button>
+            <a className="btn" href={studentLink} target="_blank" rel="noreferrer">
+              See what they see
+            </a>
+          </div>
+        </div>
       )}
 
       <div className="page-head">
