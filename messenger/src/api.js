@@ -82,6 +82,21 @@ export async function myRecoveryCode() {
   return rpc('my_recovery_code', {})
 }
 
+// ---------------------------------------------------------------- push notifications
+
+export async function savePushSubscription(sub) {
+  const json = sub.toJSON()
+  return rpc('save_push_subscription', {
+    p_endpoint: json.endpoint,
+    p_p256dh: json.keys.p256dh,
+    p_auth: json.keys.auth,
+  })
+}
+
+export async function removePushSubscription(endpoint) {
+  return rpc('remove_push_subscription', { p_endpoint: endpoint })
+}
+
 // Retires the current restore code and issues a new one, for when someone
 // thinks theirs has been seen.
 export async function regenerateRecoveryCode() {

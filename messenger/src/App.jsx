@@ -8,6 +8,7 @@ import Members from './components/Members.jsx'
 import { getSession, clearSession } from './storage.js'
 import { flushOutbox, supabase } from './api.js'
 import { inQuietHours } from './quietHours.js'
+import { disablePush } from './push.js'
 
 function parseHash() {
   const h = window.location.hash.slice(1)
@@ -73,8 +74,13 @@ export default function App() {
     clearSession()
     setSession(null)
     window.location.hash = ''
-    // Best effort, in the background; the user is already signed out.
-    client?.auth.signOut().catch(() => {})
+    // Best effort, in the background; the user is already signed out. Drop
+    // this device's push subscription first (while the client can still
+    // authenticate the RPC) so it stops receiving another account's
+    // announcements once someone else signs in here.
+    disablePush()
+      .catch(() => {})
+      .finally(() => client?.auth.signOut().catch(() => {}))
   }
 
   if (!session) {

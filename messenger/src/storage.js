@@ -57,6 +57,18 @@ export function markRead(channelId, ts) {
   }
 }
 
+// -- push notification opt-in banner --
+
+export function isPushPromptDismissed() {
+  return !!load().pushPromptDismissed
+}
+
+export function dismissPushPrompt() {
+  const s = load()
+  s.pushPromptDismissed = true
+  save(s)
+}
+
 // -- offline outbox --
 
 export function getOutbox() {
