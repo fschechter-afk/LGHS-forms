@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { call, sendOrQueue, onChannelActivity, uploadAttachment } from '../api.js'
 import { markRead, getOutbox } from '../storage.js'
+import { refreshBadge } from '../badge.js'
 import { compressImage, isImage, isPdf, MAX_UPLOAD_BYTES } from '../images.js'
 import { personColor } from '../people.js'
 import PollCard from './PollCard.jsx'
@@ -75,6 +76,7 @@ export default function ChatView({ channelId, session, quiet, onBack }) {
       })
     }
     markRead(channelId, data.now)
+    refreshBadge()
     setQueuedCount(getOutbox().length)
   }
 
