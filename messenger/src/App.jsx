@@ -6,9 +6,10 @@ import NewChat from './components/NewChat.jsx'
 import Admin from './components/Admin.jsx'
 import Members from './components/Members.jsx'
 import { getSession, clearSession } from './storage.js'
-import { flushOutbox, supabase } from './api.js'
+import { flushOutbox, onChannelListActivity, supabase } from './api.js'
 import { inQuietHours } from './quietHours.js'
 import { disablePush } from './push.js'
+import { refreshBadge, clearBadge } from './badge.js'
 
 function parseHash() {
   const h = window.location.hash.slice(1)
@@ -47,6 +48,21 @@ export default function App() {
     return () => window.removeEventListener('online', onOnline)
   }, [session])
 
+  // Home screen icon badge: kept fresh regardless of which screen is open,
+  // since reading a chat (ChatView) doesn't otherwise touch the channel list.
+  useEffect(() => {
+    if (!session) return
+    refreshBadge()
+    const unsubscribe = onChannelListActivity(refreshBadge)
+    const timer = setInterval(() => {
+      if (!document.hidden) refreshBadge()
+    }, 30000)
+    return () => {
+      unsubscribe()
+      clearInterval(timer)
+    }
+  }, [session])
+
   // An existing member who taps an invite link again (they saved it, or it
   // got re-shared) should land in their chats, not back on the join form.
   useEffect(() => {
@@ -73,6 +89,7 @@ export default function App() {
     }
     clearSession()
     setSession(null)
+    clearBadge()
     window.location.hash = ''
     // Best effort, in the background; the user is already signed out. Drop
     // this device's push subscription first (while the client can still

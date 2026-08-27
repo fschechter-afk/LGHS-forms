@@ -28,6 +28,8 @@ never charges).
 - **Push notifications for Announcements**: members can opt in to a phone
   notification whenever staff/admins post to 📣 Announcements — even with the
   app closed. DMs and groups stay in-app only, on purpose
+- **Home screen icon badge**: the app icon shows a number for how many chats
+  have unread messages, on top of the in-app green unread dots
 - **Moderation**: authors, staff and admins can delete messages; admins can
   disable accounts instantly, or remove a user entirely (account + their messages)
 - **PWA**: installable on phones, opens offline, queues messages written
