@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { call, onChannelListActivity, myRecoveryCode, regenerateRecoveryCode } from '../api.js'
-import { getLastRead } from '../storage.js'
+import { getLastRead, isPushPromptDismissed, dismissPushPrompt } from '../storage.js'
+import { isPushSupported, pushPermission, enablePush } from '../push.js'
 
 const CHANNEL_ICONS = { announcement: '📣', group: '👥', dm: '💬' }
 
@@ -17,6 +18,10 @@ function timeAgo(ts) {
 export default function ChatList({ session, onSignOut }) {
   const [channels, setChannels] = useState(null)
   const [error, setError] = useState('')
+  const [showPushBanner, setShowPushBanner] = useState(
+    isPushSupported() && pushPermission() === 'default' && !isPushPromptDismissed()
+  )
+  const [pushBusy, setPushBusy] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -79,6 +84,23 @@ export default function ChatList({ session, onSignOut }) {
     }
   }
 
+  const enableNotifications = async () => {
+    setPushBusy(true)
+    try {
+      await enablePush()
+      setShowPushBanner(false)
+    } catch (err) {
+      alert(err.message)
+    } finally {
+      setPushBusy(false)
+    }
+  }
+
+  const dismissNotifBanner = () => {
+    dismissPushPrompt()
+    setShowPushBanner(false)
+  }
+
   return (
     <div className="screen">
       <header className="topbar">
@@ -108,6 +130,16 @@ export default function ChatList({ session, onSignOut }) {
       </header>
 
       <main className="chat-list">
+        {showPushBanner && (
+          <div className="notif-banner">
+            <button className="notif-banner-text" disabled={pushBusy} onClick={enableNotifications}>
+              🔔 {pushBusy ? 'Turning on…' : 'Get notified when a new announcement is posted'}
+            </button>
+            <button className="notif-banner-dismiss" title="Dismiss" onClick={dismissNotifBanner}>
+              ✕
+            </button>
+          </div>
+        )}
         {error && <div className="error">{error}</div>}
         {channels === null && !error && <div className="empty">Loading chats…</div>}
         {channels && channels.length === 0 && (

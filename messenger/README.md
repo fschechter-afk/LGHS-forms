@@ -25,6 +25,9 @@ never charges).
   "I'm here ✔" request and watches the attendance list fill in live
 - **Quiet hours**: admin sets a window (e.g. `21:30-07:00`); the app shows a
   🌙 banner during it
+- **Push notifications for Announcements**: members can opt in to a phone
+  notification whenever staff/admins post to 📣 Announcements — even with the
+  app closed. DMs and groups stay in-app only, on purpose
 - **Moderation**: authors, staff and admins can delete messages; admins can
   disable accounts instantly, or remove a user entirely (account + their messages)
 - **PWA**: installable on phones, opens offline, queues messages written
@@ -61,6 +64,45 @@ npm run build      # production build in messenger/dist/
 7. In **⚙️ Admin panel**, generate codes and tap **Copy join
    link** — people just tap the link, type their name, and they're in.
 
+## Push notifications for Announcements (optional, ~5 minutes)
+
+Members can get a phone notification whenever staff/admins post to 📣
+Announcements, even with the app closed — DMs and groups never do this, so a
+busy group thread can't buzz someone's lock screen. `schema.sql` above
+already creates the database side; this adds the two pieces schema.sql can't
+set up for you (a deployed function has to exist before the database can
+call it, and its secret keys must never be pasted into a file that gets
+committed to a repo).
+
+1. **Generate a VAPID key pair** (identifies your server to push
+   services — a one-time, free, no-account step):
+   ```bash
+   npx web-push generate-vapid-keys
+   ```
+2. **Deploy the Edge Function**: install the
+   [Supabase CLI](https://supabase.com/docs/guides/cli), then from the
+   `messenger/` folder:
+   ```bash
+   supabase functions deploy send-announcement-push --project-ref YOUR-PROJECT-REF --no-verify-jwt
+   ```
+3. **Set its secrets** — dashboard **Project Settings → Edge Functions →
+   Secrets** (or `supabase secrets set`): `VAPID_PUBLIC_KEY`,
+   `VAPID_PRIVATE_KEY` (both from step 1), and `VAPID_SUBJECT` (a
+   `mailto:your-email@example.com` the push services can contact you at if
+   something's wrong).
+4. Back in `schema.sql`'s push-notifications section (already run in step
+   3 of the main setup above), replace `YOUR-PROJECT-REF` in the
+   `notify_announcement_push` function with your real project ref
+   (**Project Settings → General → Reference ID**) and re-run just that
+   `create or replace function` statement in the SQL Editor.
+5. Paste the **public** key from step 1 into `VAPID_PUBLIC_KEY` in
+   [`src/config.js`](src/config.js) and redeploy the app. (Only the public
+   key goes here — it's meant to be visible to every device. The private key
+   stays in the Edge Function secret from step 3, never in this repo.)
+
+Members turn it on themselves from a banner on their chat list — nobody gets
+notifications until they tap it and allow the browser permission prompt.
+
 ## Security model
 
 - The anon key in join links is Supabase's *public* client key — it grants
@@ -85,7 +127,6 @@ npm run build      # production build in messenger/dist/
 
 ## Ideas for later
 
-- Web push notifications (free via a Supabase Edge Function + browser push)
 - Photo attachments (Supabase Storage, 1 GB free)
 - Read receipts, typing indicators, message replies/threads
 - Events board with RSVP (a poll variant), lost & found channel preset

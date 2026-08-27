@@ -176,6 +176,38 @@ select:focus {
   text-align: center;
 }
 
+.notif-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #1f2c40;
+  color: #aebee0;
+  font-size: 13px;
+  padding: 10px 14px;
+}
+
+.notif-banner-text {
+  flex: 1;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  padding: 0;
+  cursor: pointer;
+}
+
+.notif-banner-dismiss {
+  background: none;
+  border: none;
+  color: inherit;
+  opacity: 0.7;
+  font-size: 15px;
+  line-height: 1;
+  padding: 4px;
+  cursor: pointer;
+}
+
 .error {
   color: #ffb3b3;
   background: rgba(234, 84, 85, 0.12);
