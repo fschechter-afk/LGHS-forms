@@ -1,11 +1,14 @@
 import React, { useEffect, useRef } from 'react'
 
 /**
- * Single-line-in-meaning, multi-line-on-screen text box: the value never
- * contains newlines, but long text wraps and the box grows to fit so the
- * whole question stays visible instead of scrolling out of view sideways.
+ * Text box that wraps and grows to fit, so long text stays visible instead of
+ * scrolling out of view sideways.
+ *
+ * By default the value is single-line in meaning: newlines are stripped and
+ * Enter does nothing, which suits a question or a title. Pass `multiline` for
+ * prose — an intro paragraph — where Enter starts a new line as expected.
  */
-export default function AutoGrowInput({ value, onChange, className = '', ...rest }) {
+export default function AutoGrowInput({ value, onChange, className = '', multiline = false, ...rest }) {
   const ref = useRef(null)
 
   const resize = () => {
@@ -28,8 +31,8 @@ export default function AutoGrowInput({ value, onChange, className = '', ...rest
       className={`autogrow ${className}`.trim()}
       rows={1}
       value={value}
-      onChange={(e) => onChange(e.target.value.replace(/[\r\n]+/g, ' '))}
-      onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault() }}
+      onChange={(e) => onChange(multiline ? e.target.value : e.target.value.replace(/[\r\n]+/g, ' '))}
+      onKeyDown={(e) => { if (e.key === 'Enter' && !multiline) e.preventDefault() }}
       {...rest}
     />
   )

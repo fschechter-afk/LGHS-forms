@@ -167,6 +167,23 @@ body {
 }
 .desc-input:focus { border-bottom-color: var(--accent); }
 
+/* The intro paragraph, as the girls see it: blank lines kept as written. */
+.fill-intro {
+  color: var(--muted);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  margin: 8px 0 0;
+  line-height: 1.5;
+}
+/* On the hub list an intro is only a teaser — keep cards a uniform size. */
+.hub-card-intro {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: pre-wrap;
+}
+
 .question-card.error { border-color: var(--danger); }
 
 /* Text boxes that wrap and grow instead of scrolling sideways. */
