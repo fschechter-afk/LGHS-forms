@@ -87,7 +87,7 @@ export default function Hub({ data }) {
       {state === 'ready' && forms.map((f) => (
         <div key={f.id} className="card form-card-hub" onClick={() => setActive(f)}>
           <div className="form-card-title">{f.title || 'Untitled form'}</div>
-          {f.description && <div className="muted small">{f.description}</div>}
+          {f.description && <div className="muted small hub-card-intro">{f.description}</div>}
           <div className="hub-fill-hint">Tap to fill out →</div>
         </div>
       ))}

@@ -109,7 +109,7 @@ export default function FillForm({ form, endpoint, preview = false, shared = fal
       )}
       <div className="card form-header-card fill-header">
         <h1>{form.title || 'Untitled form'}</h1>
-        {form.description && <p className="muted">{form.description}</p>}
+        {form.description && <p className="fill-intro">{form.description}</p>}
         {form.questions.some((q) => q.required) && <p className="required-note">* Required</p>}
       </div>
 

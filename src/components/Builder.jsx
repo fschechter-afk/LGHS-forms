@@ -136,12 +136,12 @@ export default function Builder({ formId }) {
           placeholder="Form title"
           onChange={(title) => update({ title })}
         />
-        <textarea
+        <AutoGrowInput
           className="desc-input"
+          multiline
           value={form.description}
-          placeholder="Form description (optional)"
-          rows={2}
-          onChange={(e) => update({ description: e.target.value })}
+          placeholder="Introduction (optional) — shown above the questions. Explain what this form is for, deadlines, who to ask with questions…"
+          onChange={(description) => update({ description })}
         />
         <label className="toggle-row">
           <input
