@@ -15,10 +15,32 @@ export async function sendToSheets(endpoint, payload) {
   return res
 }
 
+// Posts an action to the Apps Script web app and insists on a real JSON "ok".
+// Anything else — a Google sign-in page because access isn't "Anyone", or an
+// older deployed script that doesn't know this action — is an error, not a
+// silent success.
+async function postAction(endpoint, payload, what) {
+  const res = await sendToSheets(endpoint, payload)
+  const text = await res.text()
+  let body
+  try {
+    body = JSON.parse(text)
+  } catch {
+    throw new Error(
+      `${what} failed — the Apps Script didn't reply with data. In Apps Script check ` +
+      `Deploy → Manage deployments: "Who has access" must be Anyone. Then redeploy ` +
+      `(✏️ Edit → Version: New version).`
+    )
+  }
+  if (body.ok !== true) throw new Error(body.error || `${what} failed`)
+  return body
+}
+
 // Publish/unpublish a form on the student hub (stored in the spreadsheet).
-// Throws with the webhook's error message on failure (e.g. wrong publish key).
+// After publishing we read the hub back, because an out-of-date script accepts
+// an unknown action as a plain submission and happily answers "ok".
 export async function publishToHub(endpoint, form, key) {
-  const res = await sendToSheets(endpoint, {
+  await postAction(endpoint, {
     action: 'publish',
     key: key || '',
     form: {
@@ -28,15 +50,20 @@ export async function publishToHub(endpoint, form, key) {
       accepting: form.accepting,
       questions: form.questions,
     },
-  })
-  const body = await res.json().catch(() => ({}))
-  if (body.ok === false) throw new Error(body.error || 'Publish failed')
+  }, 'Publishing')
+
+  const forms = await fetchHubForms(endpoint).catch(() => null)
+  if (forms && !forms.some((f) => f.id === form.id)) {
+    throw new Error(
+      'The script accepted it but the form is not in the hub, so your Apps Script ' +
+      'is an older version. Paste the latest apps-script/Code.gs, then redeploy ' +
+      '(Deploy → Manage deployments → ✏️ Edit → Version: New version).'
+    )
+  }
 }
 
 export async function unpublishFromHub(endpoint, formId, key) {
-  const res = await sendToSheets(endpoint, { action: 'unpublish', key: key || '', formId })
-  const body = await res.json().catch(() => ({}))
-  if (body.ok === false) throw new Error(body.error || 'Unpublish failed')
+  await postAction(endpoint, { action: 'unpublish', key: key || '', formId }, 'Unpublishing')
 }
 
 export async function fetchHubForms(endpoint) {
