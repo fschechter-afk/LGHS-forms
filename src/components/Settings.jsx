@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { getSettings, saveSettings, getQueue, hubLink, uid } from '../storage.js'
-import { sendToSheets, flushQueue } from '../sheets.js'
+import { sendToSheets, flushQueue, fetchHubForms } from '../sheets.js'
 import { chatLink, loadKnowledge, addKnowledge, removeKnowledge } from '../handbook.js'
 
 // Keep feeding the LGHS Chatbox new information — announcements, schedule
@@ -151,9 +151,17 @@ export default function Settings() {
         submittedAt: new Date().toISOString(),
         answers: [{ question: 'Status', answer: 'It works! You can delete this sheet tab.' }],
       })
-      setTestState('ok')
     } catch {
       setTestState('fail')
+      return
+    }
+    // Responses work. Check the script is new enough for the student hub too,
+    // so an out-of-date deployment shows up here and not at publish time.
+    try {
+      await fetchHubForms(settings.sheetsEndpoint)
+      setTestState('ok')
+    } catch {
+      setTestState('old')
     }
   }
 
@@ -205,6 +213,13 @@ export default function Settings() {
             {testState === 'testing' ? 'Testing…' : 'Send a test row'}
           </button>
           {testState === 'ok' && <span className="ok-text">✓ Success — check your Sheet for a "Connection test" tab.</span>}
+          {testState === 'old' && (
+            <span className="error-text">
+              Responses work, but the student hub doesn't: your Apps Script is an older
+              version. Paste in the latest apps-script/Code.gs, then Deploy → Manage
+              deployments → ✏️ Edit → Version: New version → Deploy.
+            </span>
+          )}
           {testState === 'fail' && <span className="error-text">Couldn't reach the web app. Check the URL and that access is set to "Anyone".</span>}
         </div>
       </div>
