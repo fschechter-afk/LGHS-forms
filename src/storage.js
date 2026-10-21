@@ -163,3 +163,26 @@ export function decodeForm(encoded) {
 export function hubLink(endpoint) {
   return `${location.origin}${location.pathname}#/hub/${encodeText(endpoint)}`
 }
+
+// ---- Moving the setup to another device (laptop → phone) ----
+// Settings live only in this browser's storage, so this packs them into a
+// link the owner sends to themselves and opens on the other device.
+
+export function setupLink(settings) {
+  const payload = JSON.stringify({
+    e: settings.sheetsEndpoint || '',
+    s: settings.sheetUrl || '',
+    k: settings.publishKey || '',
+  })
+  return `${location.origin}${location.pathname}#/setup/${encodeText(payload)}`
+}
+
+export function decodeSetup(encoded) {
+  try {
+    const { e, s, k } = JSON.parse(decodeText(encoded))
+    if (!e) return null
+    return { sheetsEndpoint: e, sheetUrl: s || '', publishKey: k || '' }
+  } catch {
+    return null
+  }
+}
