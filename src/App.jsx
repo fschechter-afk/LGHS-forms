@@ -5,6 +5,7 @@ import FillForm from './components/FillForm.jsx'
 import Responses from './components/Responses.jsx'
 import Settings from './components/Settings.jsx'
 import Hub from './components/Hub.jsx'
+import Setup from './components/Setup.jsx'
 import HandbookChat from './components/HandbookChat.jsx'
 import { decodeForm, decodeText, getForm, getSettings } from './storage.js'
 import { DEFAULT_CHAT_ENDPOINT } from './config.js'
@@ -36,6 +37,8 @@ export default function App() {
   const { page, param } = route
 
   if (page === 'hub') return <Hub key={param} data={param} />
+
+  if (page === 'setup') return <Setup key={param} data={param} />
 
   if (page === 'chat') {
     // Shared links carry the webhook in the URL; the owner's device uses

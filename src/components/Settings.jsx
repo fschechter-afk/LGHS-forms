@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { getSettings, saveSettings, getQueue, hubLink, uid } from '../storage.js'
+import { getSettings, saveSettings, getQueue, hubLink, setupLink, uid } from '../storage.js'
 import { sendToSheets, flushQueue, fetchHubForms } from '../sheets.js'
 import { chatLink, loadKnowledge, addKnowledge, removeKnowledge } from '../handbook.js'
 
@@ -112,7 +112,19 @@ export default function Settings() {
   const [testState, setTestState] = useState(null)
   const [hubCopied, setHubCopied] = useState(false)
   const [chatCopied, setChatCopied] = useState(false)
+  const [setupCopied, setSetupCopied] = useState(false)
   const queued = getQueue().length
+
+  async function copySetupLink() {
+    const url = setupLink(settings)
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch {
+      prompt('Copy this link:', url)
+    }
+    setSetupCopied(true)
+    setTimeout(() => setSetupCopied(false), 1500)
+  }
 
   async function copyHubLink() {
     const url = hubLink(settings.sheetsEndpoint)
@@ -281,6 +293,27 @@ export default function Settings() {
 
       {settings.sheetsEndpoint && (
         <KnowledgeManager endpoint={settings.sheetsEndpoint} publishKey={settings.publishKey} />
+      )}
+
+      {settings.sheetsEndpoint && (
+        <div className="card">
+          <h2 className="card-title">Use this on another device</h2>
+          <p className="muted small">
+            The connection is saved on this device only, so a laptop and a phone each
+            need it. This link carries it across: send it to yourself, open it on the
+            other device, and tap Connect. On iPhone the home-screen app and Safari
+            count as separate devices, so connect the one you actually work in.
+          </p>
+          <p className="muted small">
+            Send it only to yourself — anyone who opens it can collect responses into
+            your sheet{settings.publishKey ? ' and publish forms' : ''}.
+          </p>
+          <div className="settings-actions">
+            <button className="btn primary" onClick={copySetupLink}>
+              {setupCopied ? '✓ Copied' : 'Copy setup link'}
+            </button>
+          </div>
+        </div>
       )}
 
       {queued > 0 && (
