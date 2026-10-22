@@ -6,8 +6,10 @@ import Responses from './components/Responses.jsx'
 import Settings from './components/Settings.jsx'
 import Hub from './components/Hub.jsx'
 import Setup from './components/Setup.jsx'
+import NoteEditor from './components/NoteEditor.jsx'
+import NoteView from './components/NoteView.jsx'
 import HandbookChat from './components/HandbookChat.jsx'
-import { decodeForm, decodeText, getForm, getSettings } from './storage.js'
+import { decodeForm, decodeNote, decodeText, getForm, getSettings, isNote } from './storage.js'
 import { DEFAULT_CHAT_ENDPOINT } from './config.js'
 import { flushQueue } from './sheets.js'
 
@@ -59,7 +61,14 @@ export default function App() {
     return <FillForm form={form} endpoint={getSettings().sheetsEndpoint} preview />
   }
 
-  if (page === 'edit') return <Builder formId={param} />
+  if (page === 'read') return <NoteView note={decodeNote(param)} />
+
+  if (page === 'read-preview') return <NoteView note={getForm(param)} backHref={`#/edit/${param}`} />
+
+  if (page === 'edit') {
+    const item = getForm(param)
+    return isNote(item) ? <NoteEditor noteId={param} /> : <Builder formId={param} />
+  }
   if (page === 'responses') return <Responses formId={param} />
   if (page === 'settings') return <Settings />
   return <Home />
