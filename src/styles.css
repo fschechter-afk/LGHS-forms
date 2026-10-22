@@ -124,6 +124,31 @@ body {
 .form-card-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
 .empty { text-align: center; padding: 48px 16px; color: var(--muted); }
 
+/* Posts: long text to read rather than fill in */
+.kind-tag {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  border-radius: 6px;
+  padding: 2px 6px;
+  margin-right: 8px;
+  vertical-align: 2px;
+}
+.note-body-input { font-size: 15px; min-height: 180px; background: transparent; border: none; }
+.note-count { margin-top: 10px; }
+.note-count.over { color: var(--danger); font-weight: 600; }
+.note-title { margin: 0; font-size: 24px; overflow-wrap: break-word; }
+.note-body {
+  font-size: 16px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
 /* Student link card */
 .student-link-card { border-left: 4px solid var(--accent); }
 .student-link-url {

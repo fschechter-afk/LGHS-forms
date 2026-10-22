@@ -61,8 +61,28 @@ export function newForm() {
   }
 }
 
-export function newQuestion(type = 'short') {
-  const base = { id: uid(), type, label: '', required: false }
+// A post is something to read rather than fill in — a farbrengen write-up,
+// an announcement. It rides the same storage and hub as forms, marked by
+// `kind`, so no Apps Script change is needed to publish one.
+export function newNote() {
+  return {
+    id: uid(),
+    kind: 'note',
+    title: 'Untitled post',
+    body: '',
+    accepting: true,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  }
+}
+
+export const isNote = (item) => item?.kind === 'note'
+
+// A published item is stored in one spreadsheet cell, which Google caps at
+// 50,000 characters; leave room for the JSON escaping around the text.
+export const NOTE_MAX_CHARS = 40000
+
+export function newQuestion(type = 'short') {  const base = { id: uid(), type, label: '', required: false }
   if (type === 'choice' || type === 'checkbox' || type === 'dropdown') {
     base.options = ['Option 1']
   }
@@ -153,6 +173,25 @@ export function encodeForm(form, endpoint) {
 export function decodeForm(encoded) {
   try {
     return JSON.parse(decodeText(encoded))
+  } catch {
+    return null
+  }
+}
+
+// Share link for a single post, for sending outside the hub.
+export function encodeNote(note) {
+  return encodeText(JSON.stringify({
+    id: note.id,
+    kind: 'note',
+    title: note.title,
+    body: note.body,
+  }))
+}
+
+export function decodeNote(encoded) {
+  try {
+    const note = JSON.parse(decodeText(encoded))
+    return note && note.kind === 'note' ? note : null
   } catch {
     return null
   }

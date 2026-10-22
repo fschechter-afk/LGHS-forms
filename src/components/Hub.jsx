@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import FillForm from './FillForm.jsx'
-import { decodeText } from '../storage.js'
+import NoteView from './NoteView.jsx'
+import { decodeText, isNote } from '../storage.js'
 import { fetchHubForms } from '../sheets.js'
 
 // Student-facing hub: one permanent link that lists every published form.
@@ -49,6 +50,9 @@ export default function Hub({ data }) {
   }
 
   if (active) {
+    if (isNote(active)) {
+      return <NoteView note={active} onBack={() => setActive(null)} />
+    }
     return <FillForm form={active} endpoint={endpoint} shared onBack={() => setActive(null)} />
   }
 
@@ -86,9 +90,14 @@ export default function Hub({ data }) {
 
       {state === 'ready' && forms.map((f) => (
         <div key={f.id} className="card form-card-hub" onClick={() => setActive(f)}>
-          <div className="form-card-title">{f.title || 'Untitled form'}</div>
-          {f.description && <div className="muted small hub-card-intro">{f.description}</div>}
-          <div className="hub-fill-hint">Tap to fill out →</div>
+          <div className="form-card-title">
+            {isNote(f) && <span className="kind-tag">Post</span>}
+            {f.title || (isNote(f) ? 'Untitled post' : 'Untitled form')}
+          </div>
+          {isNote(f)
+            ? <div className="muted small hub-card-intro">{f.body}</div>
+            : f.description && <div className="muted small hub-card-intro">{f.description}</div>}
+          <div className="hub-fill-hint">{isNote(f) ? 'Tap to read →' : 'Tap to fill out →'}</div>
         </div>
       ))}
     </div>

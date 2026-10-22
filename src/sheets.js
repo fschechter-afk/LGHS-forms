@@ -45,8 +45,10 @@ export async function publishToHub(endpoint, form, key) {
     key: key || '',
     form: {
       id: form.id,
+      kind: form.kind || 'form',
       title: form.title,
       description: form.description,
+      body: form.body,
       accepting: form.accepting,
       questions: form.questions,
     },
