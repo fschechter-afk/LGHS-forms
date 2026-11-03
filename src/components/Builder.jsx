@@ -30,6 +30,15 @@ export default function Builder({ formId }) {
 
   const update = (patch) => setForm({ ...form, ...patch })
 
+  // Autosave is debounced, and leaving the editor cancels a pending save, so
+  // hub state is written straight through — it must survive tapping Publish
+  // and immediately going back.
+  const commit = (patch) => {
+    const next = { ...form, ...patch }
+    setForm(next)
+    saveForm(next)
+  }
+
   const updateQuestion = (qid, patch) =>
     update({ questions: form.questions.map((q) => (q.id === qid ? { ...q, ...patch } : q)) })
 
@@ -86,7 +95,7 @@ export default function Builder({ formId }) {
     setHubBusy(true)
     try {
       await publishToHub(settings.sheetsEndpoint, form, settings.publishKey)
-      update({ published: true })
+      commit({ published: true })
       alert(form.published
         ? 'Hub updated — students now see the latest version.'
         : 'Published! This form now appears on the student hub.')
@@ -102,7 +111,7 @@ export default function Builder({ formId }) {
     setHubBusy(true)
     try {
       await unpublishFromHub(settings.sheetsEndpoint, form.id, settings.publishKey)
-      update({ published: false })
+      commit({ published: false })
       alert('Removed from the student hub.')
     } catch (err) {
       alert('Could not unpublish: ' + err.message)

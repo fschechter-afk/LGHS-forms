@@ -107,8 +107,67 @@ function KnowledgeManager({ endpoint, publishKey }) {
   )
 }
 
-export default function Settings() {
-  const [settings, setSettings] = useState(getSettings())
+// Reads the hub back from the spreadsheet, so "I published it but the girls
+// can't see it" has a straight answer: either it is on this list or it isn't.
+function HubContents({ endpoint }) {
+  const [items, setItems] = useState(null) // null = loading, false = failed
+  const [at, setAt] = useState(null)
+
+  async function refresh() {
+    setItems(null)
+    try {
+      setItems(await fetchHubForms(endpoint))
+      setAt(new Date())
+    } catch {
+      setItems(false)
+    }
+  }
+
+  useEffect(() => { refresh() }, [endpoint])
+
+  if (items === null) return <p className="muted small">Checking the hub…</p>
+  if (items === false) {
+    return (
+      <p className="error-text small">
+        Couldn't read the hub. <button className="btn small" onClick={refresh}>Try again</button>
+      </p>
+    )
+  }
+
+  const open = items.filter((f) => f.accepting !== false)
+  const hidden = items.length - open.length
+
+  return (
+    <div className="hub-contents">
+      <div className="muted small">
+        On the hub now: <strong>{open.length}</strong> {open.length === 1 ? 'item' : 'items'}
+        {hidden > 0 && ` (plus ${hidden} hidden)`}
+        {at && ` · checked ${at.toLocaleTimeString()}`}
+        {' '}<button className="btn small" onClick={refresh}>↻</button>
+      </div>
+      {open.length > 0 && (
+        <ul className="hub-contents-list">
+          {open.map((f) => (
+            <li key={f.id} className="muted small">• {f.title || 'Untitled'}</li>
+          ))}
+        </ul>
+      )}
+      {items.length === 0 && (
+        <p className="muted small">
+          Nothing published yet. Open a form or post and tap <strong>Publish to hub</strong>.
+        </p>
+      )}
+      {open.length === 0 && hidden > 0 && (
+        <p className="muted small">
+          Everything published is hidden — switch "Accepting responses" (or "Visible on
+          the hub") back on to show it.
+        </p>
+      )}
+    </div>
+  )
+}
+
+export default function Settings() {  const [settings, setSettings] = useState(getSettings())
   const [testState, setTestState] = useState(null)
   const [hubCopied, setHubCopied] = useState(false)
   const [chatCopied, setChatCopied] = useState(false)
@@ -253,6 +312,7 @@ export default function Settings() {
               Open hub
             </a>
           </div>
+          <HubContents endpoint={settings.sheetsEndpoint} />
           <label className="field">
             Publish key (optional — must match PUBLISH_KEY in your Apps Script)
             <input

@@ -31,6 +31,14 @@ export default function NoteEditor({ noteId }) {
   }
 
   const update = (patch) => setNote({ ...note, ...patch })
+
+  // Written straight through, not via the debounced autosave, so hub state
+  // survives tapping Publish and immediately leaving the editor.
+  const commit = (patch) => {
+    const next = { ...note, ...patch }
+    setNote(next)
+    saveForm(next)
+  }
   const tooLong = (note.body || '').length > NOTE_MAX_CHARS
 
   async function copyLink() {
@@ -57,7 +65,7 @@ export default function NoteEditor({ noteId }) {
     setHubBusy(true)
     try {
       await publishToHub(settings.sheetsEndpoint, note, settings.publishKey)
-      update({ published: true })
+      commit({ published: true })
       alert(note.published
         ? 'Hub updated — the girls now see the latest version.'
         : 'Published! This post now appears on the student hub.')
@@ -73,7 +81,7 @@ export default function NoteEditor({ noteId }) {
     setHubBusy(true)
     try {
       await unpublishFromHub(settings.sheetsEndpoint, note.id, settings.publishKey)
-      update({ published: false })
+      commit({ published: false })
       alert('Removed from the student hub.')
     } catch (err) {
       alert('Could not unpublish: ' + err.message)
