@@ -9,7 +9,7 @@ import { fetchHubForms } from '../sheets.js'
 export default function Hub({ data }) {
   const endpoint = decodeText(data)
   const cacheKey = 'lghsforms.hubcache'
-  const [state, setState] = useState('loading') // loading | ready | error
+  const [state, setState] = useState('loading') // loading | ready | stale | error
   const [forms, setForms] = useState([])
   const [active, setActive] = useState(null)
 
@@ -22,12 +22,13 @@ export default function Hub({ data }) {
       setState('ready')
       localStorage.setItem(cacheKey, JSON.stringify(open))
     } catch {
-      // Offline or blocked: fall back to the last list this device saw.
+      // Offline or blocked: show the last list this device saw, but say so —
+      // otherwise an out-of-date list is indistinguishable from a current one.
       const cached = localStorage.getItem(cacheKey)
       if (cached) {
         try {
           setForms(JSON.parse(cached))
-          setState('ready')
+          setState('stale')
           return
         } catch {}
       }
@@ -75,7 +76,14 @@ export default function Hub({ data }) {
         </div>
       )}
 
-      {state === 'ready' && forms.length === 0 && (
+      {state === 'stale' && (
+        <div className="banner static">
+          Couldn't reach the server, so this is the list from last time — anything
+          added since is missing. Tap ↻ Refresh when you're back online.
+        </div>
+      )}
+
+      {(state === 'ready' || state === 'stale') && forms.length === 0 && (
         <div className="empty">
           <p>No forms are open right now.</p>
           <p className="muted small">Check back later, or tap Refresh.</p>
@@ -88,7 +96,7 @@ export default function Hub({ data }) {
         <div className="hub-fill-hint">Tap to ask →</div>
       </a>
 
-      {state === 'ready' && forms.map((f) => (
+      {(state === 'ready' || state === 'stale') && forms.map((f) => (
         <div key={f.id} className="card form-card-hub" onClick={() => setActive(f)}>
           <div className="form-card-title">
             {isNote(f) && <span className="kind-tag">Post</span>}

@@ -124,6 +124,9 @@ body {
 .form-card-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
 .empty { text-align: center; padding: 48px 16px; color: var(--muted); }
 
+.hub-contents { margin-top: 12px; }
+.hub-contents-list { list-style: none; margin: 6px 0 0; padding: 0; line-height: 1.6; }
+
 /* Posts: long text to read rather than fill in */
 .kind-tag {
   display: inline-block;
