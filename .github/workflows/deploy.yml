@@ -32,6 +32,11 @@ jobs:
       - run: npm run build
         working-directory: messenger
       - run: mv messenger/dist dist/messenger
+      - run: npm ci
+        working-directory: notes
+      - run: npm run build
+        working-directory: notes
+      - run: mv notes/dist dist/notes
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

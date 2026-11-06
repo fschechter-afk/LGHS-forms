@@ -3,6 +3,10 @@
 > **Also in this repo:** [LGHS School Messenger](messenger/README.md) — a
 > private, invite-only messaging PWA (DMs, groups, announcements, reactions,
 > polls, check-ins). Deployed alongside the forms app at `/messenger/`.
+>
+> **And:** [LGHS Notes](notes/README.md) — a text-only notes & checklist app
+> (no attachments) backed up to each student's school email account.
+> Deployed at `/notes/`.
 
 A Google Forms substitute built as an installable PWA. Build forms, share a link,
 and every submission is automatically appended to your Google Sheet — no server

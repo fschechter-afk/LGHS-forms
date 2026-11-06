@@ -16,7 +16,8 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
+      // Only this app's old caches: Messenger and Notes share this web address.
+      Promise.all(keys.filter((k) => k.startsWith('lghs-forms-') && k !== CACHE).map((k) => caches.delete(k)))
     ).then(() => self.clients.claim())
   )
 })
@@ -26,6 +27,9 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return
   const url = new URL(req.url)
   if (url.origin !== self.location.origin) return
+  // Messenger and Notes live in sub-folders with their own service workers.
+  const scope = new URL(self.registration.scope).pathname
+  if (url.pathname.startsWith(scope + 'messenger/') || url.pathname.startsWith(scope + 'notes/')) return
 
   // Handbook: network first so edits land, cached copy when offline.
   if (url.pathname.endsWith('/handbook.md')) {
