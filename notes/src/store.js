@@ -26,14 +26,16 @@ export function openStore(account) {
   try {
     meta = { ...meta, ...JSON.parse(localStorage.getItem(metaKey) || '{}') }
   } catch {}
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i)
-    if (!k || !k.startsWith(prefix + 'n:')) continue
-    try {
-      const n = JSON.parse(localStorage.getItem(k))
-      if (n && n.id) notes.set(n.id, n)
-    } catch {}
-  }
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i)
+      if (!k || !k.startsWith(prefix + 'n:')) continue
+      try {
+        const n = JSON.parse(localStorage.getItem(k))
+        if (n && n.id) notes.set(n.id, n)
+      } catch {}
+    }
+  } catch {} // storage unavailable (private mode): start empty
   const dirty = new Set(meta.dirty)
 
   const emit = (type, detail) => listeners.forEach((fn) => fn(type, detail))
@@ -116,12 +118,14 @@ export function openStore(account) {
     // Wipe this account's notes from the phone (used on sign-out).
     destroy() {
       clearTimeout(timer)
-      const keys = []
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i)
-        if (k && k.startsWith(prefix)) keys.push(k)
-      }
-      keys.forEach((k) => localStorage.removeItem(k))
+      try {
+        const keys = []
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i)
+          if (k && k.startsWith(prefix)) keys.push(k)
+        }
+        keys.forEach((k) => localStorage.removeItem(k))
+      } catch {}
       notes.clear()
       listeners.clear()
     },

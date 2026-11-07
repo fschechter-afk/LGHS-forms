@@ -459,7 +459,7 @@ async function signOut() {
   const msg = unsynced
     ? `${unsynced} note${unsynced > 1 ? 's have' : ' has'} not been backed up yet (no internet). If you sign out now, ${unsynced > 1 ? 'they' : 'it'} will be lost. Sign out anyway?`
     : 'Sign out? Your notes are backed up and will come back when you sign in again.'
-  if (!confirm(msg)) return
+  if (!(await ask(msg, 'Sign out', true))) return
   cloud.sync.stop()
   await cloud.sb.auth.signOut().catch(() => {})
   store.destroy() // remove her notes from this phone
@@ -569,9 +569,9 @@ function showNote(isNew) {
   if (isNew) focusBlock(current.blocks[0].id, 0)
 }
 
-function deleteCurrent() {
+async function deleteCurrent() {
   if (!current) return
-  if (!current._unsaved && !noteIsEmpty(current) && !confirm('Delete this note?')) return
+  if (!current._unsaved && !noteIsEmpty(current) && !(await ask('Delete this note?', 'Delete', true))) return
   if (!current._unsaved) store.remove(current.id)
   current = null
   showList()
@@ -792,6 +792,32 @@ function revealCaret(ta) {
   const viewBottom = sc.scrollTop + sc.clientHeight
   if (caretTop + lineH + 12 > viewBottom) sc.scrollTop = caretTop + lineH + 12 - sc.clientHeight
   else if (caretTop < viewTop + 4) sc.scrollTop = Math.max(0, caretTop - 8)
+}
+
+// ================================================================ dialogs
+
+// In-app confirmation sheet (resolves true/false). Used instead of the
+// browser's confirm(), which some app views suppress.
+function ask(message, okLabel, danger) {
+  return new Promise((resolve) => {
+    const done = (v) => {
+      sheet.remove()
+      resolve(v)
+    }
+    const sheet = h(
+      'div',
+      { class: 'sheet-backdrop', onclick: (e) => e.target === sheet && done(false) },
+      h(
+        'div',
+        { class: 'sheet', role: 'alertdialog' },
+        h('div', { class: 'sheet-message' }, message),
+        h('button', { class: 'sheet-btn' + (danger ? ' danger' : ''), onclick: () => done(true) }, okLabel),
+        h('button', { class: 'sheet-btn', onclick: () => done(false) }, 'Cancel')
+      )
+    )
+    document.activeElement?.blur?.()
+    app.append(sheet)
+  })
 }
 
 // ================================================================ toast

@@ -7,13 +7,14 @@
   --line: #d1d1d6;
   --accent: #c48a00;
   --accent-soft: rgba(196, 138, 0, 0.14);
+  --on-accent: #ffffff;
   --danger: #d70015;
   --banner: #fff4d6;
   --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  color-scheme: light dark;
+  color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #000000;
     --surface: #1c1c1e;
     --text: #ffffff;
@@ -22,9 +23,25 @@
     --line: #38383a;
     --accent: #ffc53d;
     --accent-soft: rgba(255, 197, 61, 0.16);
+    --on-accent: #000000;
     --danger: #ff453a;
     --banner: #3a2f12;
+    color-scheme: dark;
   }
+}
+:root[data-theme="dark"] {
+  --bg: #000000;
+  --surface: #1c1c1e;
+  --text: #ffffff;
+  --text-2: #98989f;
+  --text-3: #636366;
+  --line: #38383a;
+  --accent: #ffc53d;
+  --accent-soft: rgba(255, 197, 61, 0.16);
+  --on-accent: #000000;
+  --danger: #ff453a;
+  --banner: #3a2f12;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -193,9 +210,8 @@ body.keyboard .toolbar { padding-bottom: 4px; }
 .checkbox.on { background: var(--accent); border-color: var(--accent); }
 .checkbox.on::before {
   content: ''; width: 6px; height: 11px; margin-top: -2px;
-  border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg);
+  border: solid var(--on-accent); border-width: 0 2px 2px 0; transform: rotate(45deg);
 }
-@media (prefers-color-scheme: dark) { .checkbox.on::before { border-color: #000; } }
 .block-check.done .block-input { color: var(--text-2); text-decoration: line-through; }
 
 .tail { min-height: 50vh; }
@@ -216,9 +232,8 @@ body.keyboard .toolbar { padding-bottom: 4px; }
 .error { color: var(--danger); font-size: 15px; line-height: 1.35; }
 .primary-btn {
   width: 100%; height: 50px; border-radius: 12px;
-  background: var(--accent); color: #fff; font-size: 17px; font-weight: 600;
+  background: var(--accent); color: var(--on-accent); font-size: 17px; font-weight: 600;
 }
-@media (prefers-color-scheme: dark) { .primary-btn { color: #000; } }
 .primary-btn:disabled { opacity: .6; }
 .link-btn { color: var(--accent); font-size: 15px; margin-top: 18px; padding: 8px; }
 
@@ -240,6 +255,7 @@ body.keyboard .toolbar { padding-bottom: 4px; }
   width: 100%; max-width: 420px; background: var(--surface);
   border-radius: 14px; padding: 18px 16px 8px; text-align: center;
 }
+.sheet-message { font-size: 15px; line-height: 1.4; color: var(--text); padding: 2px 4px 14px; }
 .sheet-title { font-size: 13px; color: var(--text-2); }
 .sheet-email { font-size: 17px; font-weight: 600; margin: 4px 0; word-break: break-all; }
 .sheet-status { font-size: 13px; color: var(--text-2); margin-bottom: 10px; }
